@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+<html>
+  <head>
+    <link href='http://fonts.googleapis.com/css?family=Fauna+One' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="css/gc.css">
+    <script src="/js/d3.v3.min.js"></script>
+    <script>
+      default_message = "<h2><b style='color:red;'>INSTRUCTIONS</b> <p> <ul><li>Hover over a circle for words descriptions <li>Click on a circle to zoom in </li> </li> <li>press 'Esc' to zoom out </li> <li> Black borders around circles indicate 'leaf' nodes </li> <li> Clicking a leaf-node starts showing documents at leaf node </li> </ul> </p></h2>";
+    </script>
+  </head>
+
+  <body onLoad="GC.load('csxml')">
+    <!-- Background dimmer -->
+    <div id='dim'></div>
+    <!-- The main overlay to display leaf nodes -->
+    <div id='overlay'>
+
+      <!-- The overlay top-bar (dog, remember to change it) -->
+      <div id='overlay-top'>
+
+	<!-- The container for the top-left buttons -->
+	<div id='overlay-top-left'>
+	  <div id='overlay-top-exit-button'>
+	    <canvas id='exitb' width='100%' height='100%'></canvas>
+	    <!--<em class='button'> &times; </em>-->
+	  </div>
+	</div>
+
+	<!-- The container for the top-right buttons (too hacky :-/) -->
+	<div id='overlay-top-right'>
+	  <div id='overlay-top-pright'>
+	    <div id='overlay-top-p-button'>
+	      <canvas id='leftb' width='100%' height='100%'></canvas>
+		<!--<em class='button'> &langle; </em>-->
+	    </div>
+	  </div>
+	  <div id='overlay-top-nright'>
+	    <div id='overlay-top-n-button'>
+	      <canvas id='rightb' width='100%' height='100%'></canvas>
+	      <!--<em class='button'> &rangle; </em>-->
+	    </div>
+	  </div>
+	</div>
+
+      </div>
+      <!-- The container for the content (below top-bar) -->
+      <div id='overlay-text-container'>
+	<div id='overlay-text'></div>
+      </div>
+      <div id='overlay-end'></div>
+    </div>
+
+    <!-- This is the normal page -->
+    <div id='page'>
+      <!-- The left-page has the SVG container and canvas -->
+      <div id='left-page'></div>
+
+      <!-- The right page is the side bar -->
+      <div id='right-page'>
+      	<div id='search-box'>
+      	<button onClick="javascript:GC.Node.load(9);">刷新数据</button>
+</p>
+      	</div>
+	<div id='right-page-top-box'>
+	  <form autocomplete='off' action=''>
+	  <span class='text'><h1>Choose Dataset :</h1>  </span>
+	  <select id='dataset' onchange="GC.load(this.options[selectedIndex].value);">
+	    <option value="rcv1">Reuters 1996-97 News articles</option>
+	    <option value="csxml" selected>CS Research papers (from citeseer)</option>
+	    <option value="tdt5">Reuters 2004 News articles</option>
+  	    <option value="ipc">European and American Patents (Subset) </option>
+	    <!--<option value="es"> 147 Essays from StackExchange Post </option>-->
+	    <option value="pubmed"> 10 Million Pubmed article abstracts </option>
+	    <!--<option value="nytc"> NY Articles </option>-->
+	  </select>
+	  </form>
+	</div>
+	<div id='wordbox'></div>
+	<div id='rateto0box'></div>
+	<div id='ratetoparentbox'></div>
+      </div>
+    </div>
+
+</body>
+<script type="text/javascript" src="js/gc.js"></script>
+<script>
+GC.draw_center_button(60,1,"#E7E7E7","rightb");
+GC.draw_center_button(60,-1,"#E7E7E7","leftb");
+GC.draw_exit_button(60,"#E7E7E7","exitb");
+</script>
+</html>

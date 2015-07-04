@@ -1,0 +1,268 @@
+/* Circle stuff */
+circle {
+    stroke: rgb(0, 0,0);
+    stroke-width: 0px;
+}
+
+.child circle {
+    fill: rgb(230, 230, 230);
+    fill-opacity: 0.0;
+    stroke-opacity: 0.0;
+    stroke: rgb(0, 0,0);
+    stroke-width: .1px;
+}
+
+
+.child circle:hover{
+    fill: rgb(200, 200, 200);
+    stroke: rgb(0,0,0);
+    stroke-width: 2px;
+    cursor: pointer;
+}
+
+.leaf circle {
+    fill: rgb(230, 230, 230);
+    fill-opacity: 0.0;
+    stroke-opacity: 0.0;
+    stroke: rgb(0,0,0);
+    stroke-width: 1px;
+}
+
+.leaf circle:hover{
+    fill: rgb(220, 220, 220);
+    stroke: rgb(0,0,0);
+    stroke-width: 3px;
+    cursor: pointer;
+}
+
+
+.root circle {
+    fill: #000000;
+    fill-opacity:0.0;
+    stroke: black;
+    stroke-width: .1px;
+}
+/* Main body */
+.body {
+    overflow: auto;
+    white-space: nowrap;
+}
+
+/* Default text */
+
+text {
+    font-family: 'Fauna One', serif;
+    font-size: 15px;
+    pointer-events: none;
+}
+
+/* Background dimmer */
+
+#dim {
+    background: rgb(0,0,0);
+    opacity:.7;
+    position:absolute; 
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    display:none;
+    z-index:5; 
+}
+
+/* Overlay for the leaf-content */
+
+#overlay {
+    background:#FFF;
+    opacity:1;
+    position:fixed; 
+    left:50%;
+    height:100%;
+    margin-left:-30%;
+    width:60%;
+    display:none;
+    /*box-shadow: 6px 0px 5px -5px;*/
+    box-shadow: 4px 0 4px  -4px #222 , -4px 0 4px  -4px #222;   
+    -moz-box-shadow: 4px 0 4px  -4px #222, -4px 0 4px  -4px #222;   
+    -webkit-box-shadow: 4px 0 4px  -4px #222, -4px 0 4px  -4px #222;   
+    border: 2px solid;
+    border-color:#111;
+    z-index:100; 
+}
+
+/* Overlay top-bar */
+
+#overlay-top {
+    background: rgb(100,100,100);
+    position:relative;
+    width:100%;
+    height:80px;
+    margin:0px;
+    -webkit-user-select: none;  /* Chrome all / Safari all */
+    -moz-user-select: none;     /* Firefox all */
+    -ms-user-select: none;      /* IE 10+ */
+}
+
+#overlay-top-left {
+    float:left;
+    width:100px;
+    height:100%;
+}
+
+#overlay-top-exit-button {
+    margin:-10px 0px;
+}
+
+#overlay-top-left:hover {
+     background: rgb(80,80,80);
+     cursor: pointer;
+}
+
+#overlay-top-right {
+    float:right;
+    width:200px;
+    height:100%;
+}
+
+#overlay-top-pright {
+    float:left;
+    width:100px;
+    height:100%;
+}
+
+#overlay-top-nright {
+    float:right;
+    width:100px;
+    height:100%;
+}
+
+#overlay-top-pright:hover {
+     background: rgb(80,80,80);
+     cursor: pointer;
+}
+
+#overlay-top-nright:hover {
+     background: rgb(80,80,80);
+     cursor: pointer;
+}
+
+#overlay-top-p-button {
+    margin:-10px 0px;
+}
+
+#overlay-top-n-button {
+    margin:-10px 0px;
+}
+
+
+/* Text inside the overlay */
+
+#overlay-text-container {
+    position:relative;
+    width:100%;
+    top:0px;
+    left:0px;
+    height:90%;
+    margin-bottom:-10px;
+    overflow:scroll;
+    overflow-x:hidden;
+}
+
+#overlay-text {
+    position:relative;
+    width:80%;
+    margin:0px auto;
+}
+
+#overlay-text p {
+    font-family: 'Fauna One', serif;
+    font-size: 18px;
+    text-align: justify;
+}
+
+#overlay-end {
+    width:100%;
+    height:10px;
+}
+
+/* Standard page with left,right */
+
+#page {
+    width:100%;
+    min-width:1000px;
+    margin:0px auto;
+}
+
+#left-page {
+    position:relative;
+    float:left;
+    width:60%;
+}
+
+#right-page {
+    position:relative;
+    float:right;
+    width:35%;
+    min-width:400px;
+}
+
+/* The sidebar wordbox */
+
+#right-page-top-box {
+    float:left;
+    margin:5px auto;
+}
+
+#right-page-down-box{
+    float:left;
+    margin:5px auto;
+}
+#wordbox {
+    position:relative;
+    float:left;
+    margin:5px auto;
+}
+
+.wordbox p {
+    font-family: 'Fauna One', serif;
+    font-size: 30px;
+    line-height:180%;
+}
+
+.wordbox li {
+    font-family: 'Fauna One', serif;
+    font-size: 20px;
+}
+
+.text {
+    font-family: 'Fauna One', serif;
+    font-size: 15px;
+    pointer-events: none;
+}
+
+/* Specific to RCV1 */
+
+.headline {
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    font-size: 32px;
+    font-weight: bold;
+}
+
+.bydateline {
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    font-size: 20px;
+    font-weight: bold;
+    font-style: italic;
+}
+    .axis path,
+    .axis line {
+        fill: none;
+        stroke: black;
+        shape-rendering: crispEdges;
+    }
+
+    .axis text {
+        font-family: sans-serif;
+        font-size: 11px;
+    };
+
