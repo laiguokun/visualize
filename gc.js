@@ -482,9 +482,9 @@ var GC = {
           return gx.yScale(d);  
       })  
       .attr("r",5);
-      }());
+
       //rate to 0 box;
- /*     gx.timesvgr0 = d3.select("#rateto0box")
+      gx.timesvgr0 = d3.select("#rateto0box")
       .append("svg")
       .attr("width",tw)
       .attr("height",th);
@@ -505,13 +505,12 @@ var GC = {
         .range([th-padding,padding]);
       gx.xAxisr0 = d3.svg.axis()
         .scale(gx.xScaler0)  
-        .orient("bottom").ticks(gx.timedatar0.length);
-          
+        .orient("bottom").ticks(gx.timedatar0.length); 
       //添加横坐标轴并通过编号获取对应的横轴标签
       gx.xBarr0=gx.timesvgr0.append("g")
         .attr("class", "axis")
         .attr("transform", "translate(0," + (th - padding) + ")")
-        .call(gx.xAxisr0)
+        .call(gx.xAxisr0);
       gx.xBarr0.selectAll("text")
         .text(function(d){return gx.xMarks[d];});
       
@@ -532,14 +531,13 @@ var GC = {
         .x(function(d,i){return gx.xScaler0(i);})
         .y(function(d){return gx.yScaler0(d);});
       
-      gx.pathr0=gx.timesvgr0.append("path")
-        .attr("d", gx.line(gx.timedatar0))
+      gx.pathr0 = gx.timesvgr0.append("path")
+        .attr("d", gx.liner0(gx.timedatar0))
         .style("fill","#F00")
         .style("fill","none")
         .style("stroke-width",1)
         .style("stroke","#F00")
         .style("stroke-opacity",0.9);
-      
       //添加系列的小圆点
       gx.timesvgr0.selectAll("circle")
       .data(gx.timedatar0)
@@ -554,7 +552,7 @@ var GC = {
           return gx.yScaler0(d);  
       })  
       .attr("r",5);
-      }());*/
+      }());
       /* One private function */
 
       gx.get_class = function( nodeid ) {
@@ -673,10 +671,6 @@ var GC = {
        */
        
       gx.render_nonleaf_mouse_action = function(nodeid,clear) {
-          var sel = document.getElementById("right-page-down-box");
-      if (clear) sel.innerHTML = "";
-      else
-        sel.innerHTML = "<p>" + gx.d3data.desc[nodeid].join(", ") + "</p>";
       }
 
       gx.render_timeLine_mouse_action = function(nodeid,clear) {
@@ -698,8 +692,8 @@ var GC = {
         for (var year = data.min; year <= data.max; year ++)
         {
           gx.timedata.push(parseInt(data[year]));
-          gx.timedatar0.push(parseInt(data[year]));
-          gx.timedatarp.push(parseInt(data[year]));
+          gx.timedatar0.push(parseFloat(datar0[year]));
+          gx.timedatarp.push(parseFloat(datarp[year]));
           if ((year-data.min) % 5 ==0)
           {
             gx.xMarks.push(year);
@@ -751,7 +745,7 @@ var GC = {
             return gx.yScale(d);  
         }); 
         //render r0 box
-/*        oldDatar0 = oldDatar0.slice(0,gx.timedata.length);
+        oldDatar0 = oldDatar0.slice(0,gx.timedata.length);
         var circler0 = gx.timesvgr0.selectAll("circle").data(oldDatar0);
         circler0.exit().remove();
         gx.timesvgr0.selectAll("circle")
@@ -772,7 +766,7 @@ var GC = {
         gx.xScaler0.domain([0,newLength - 1]);   
         gx.xAxisr0.scale(gx.xScaler0).ticks(cnt);
         gx.xBarr0.transition().duration(_duration).call(gx.xAxisr0);
-        gx.xBarr0.selectAll("text").text(function(d){return gx.xMarksr0[d];});
+        gx.xBarr0.selectAll("text").text(function(d){return gx.xMarks[d];});
         gx.yScaler0.domain([0,d3.max(gx.timedatar0)]);       
         gx.yBarr0.transition().duration(_duration).call(gx.yAxisr0);
         gx.pathr0.transition().duration(_duration).attr("d",gx.liner0(gx.timedatar0));
@@ -789,7 +783,7 @@ var GC = {
         })  
         .attr("cy", function(d) {
             return gx.yScaler0(d);  
-        });*/
+        });
       }   
 
       /* The wrapper around the 'core' nonleaf-rendering function.
