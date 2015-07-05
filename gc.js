@@ -22,7 +22,6 @@ var GC = {
     GC.Hierarchy.load();
   },
 
-
   /*********************************************************************
    * Holds the hierarchy of the given dataset. It is loaded when calling
    * calling the GC.load function. It stays until load is called again.
@@ -97,6 +96,8 @@ var GC = {
       req += "&GC_REQ=children&GC_NODE=" + value.node;
     else if ( value.type == "timeLine" )
       req += "&GC_REQ=timeLine&GC_NODE=" + value.node;
+    else if ( value.type == "searchNode")
+      req += "&GC_REQ=searchNode&GC_NODE=" + value.node;
     return req;
   } , 
 
@@ -196,7 +197,7 @@ var GC = {
 	Node.render_leaf();
       else {
 	// Dont redraw if returning back from leaf-node
-	if ( prev_isleaf == false ) 
+	//if ( prev_isleaf == false ) 
 	  Node.render_nonleaf();
       }
     }
@@ -223,6 +224,15 @@ var GC = {
       }
     }
 
+    Node.search = function(){
+      var s = document.getElementById("search-word").value;
+      GC.GetValueFromServer({type:"searchNode", node:s}, Node.search_node);
+    }
+    Node.search_node = function(s){
+      var data = JSON.parse(s);
+      var node = data.result;
+      Node.load(node);
+    }
     /* For leaf-nodes, this renders the 'next' instance (if any).
      * No effect on non-leaf nodes.
      */
@@ -284,25 +294,17 @@ var GC = {
 
     Node.render_leaf = function () {
 //      if ( Node.display_state > -1 )
-      Node.dataset = new Array(); 
-      for (var i = 0; i < Node.get_nchildren(); i++)
-      {
-        Node.display_state = i;
+      if (Node.display_state > -1 )
 	GC.GetValueFromServer({
 	  type:"content",
 	  node:Node.get_child_id(Node.display_state)} 
 			      , Node.on_leaf_load );
-      }
     }
 
     /* Use the graphics object to display recieved 'leaf' content */
 
     Node.on_leaf_load = function (s) {
-      Node.dataset.push(JSON.parse(s));
-      if (Node.dataset.length == Node.get_nchildren() - 1)
-      {
-        Node.graphics.render_leaf( Node.dataset );
-      }
+        Node.graphics.render_leaf(JSON.parse(s));
     }
 
     /* This is the main 'graphics' object for a node. There are only 2 main
@@ -328,7 +330,7 @@ var GC = {
       var h = document.documentElement.clientHeight;
       var x = Math.min ( w*60.0/100 , 95.0/100*h );
       var tw = 400;
-      var th = 300;
+      var th = 200;
       var padding = 50;
       gx.timedata = [];
       gx.timedatar0 = [];
@@ -446,7 +448,7 @@ var GC = {
       //定义纵轴
       gx.yAxis = d3.svg.axis()
         .scale(gx.yScale)
-        .orient("left").ticks(10);
+        .orient("left").ticks(7);
 
       //添加纵轴
       gx.yBar=gx.timesvg.append("g")
@@ -517,7 +519,7 @@ var GC = {
       //定义纵轴
       gx.yAxisr0 = d3.svg.axis()
         .scale(gx.yScaler0)
-        .orient("left").ticks(10);
+        .orient("left").ticks(7);
 
       //添加纵轴
       gx.yBarr0=gx.timesvgr0.append("g")
@@ -552,7 +554,77 @@ var GC = {
           return gx.yScaler0(d);  
       })  
       .attr("r",5);
+      //rate to parent
+      gx.timesvgrp = d3.select("#ratetoparentbox")
+      .append("svg")
+      .attr("width",tw)
+      .attr("height",th);
+      gx.timesvgrp.append("g")
+      .append("rect")
+      .attr("x",0)
+      .attr("y",0)
+      .attr("width",tw)
+      .attr("height",th)
+      .style("fill","#FFF")
+      .style("stroke-width",2)
+      .style("stroke","#E7E7E7");
+      gx.xScalerp = d3.scale.linear()
+        .domain([0,gx.timedatarp.length-1])
+        .range([padding,tw-padding]);
+      gx.yScalerp = d3.scale.linear()
+        .domain([0,d3.max(gx.timedatarp)])
+        .range([th-padding,padding]);
+      gx.xAxisrp = d3.svg.axis()
+        .scale(gx.xScalerp)  
+        .orient("bottom").ticks(gx.timedatarp.length); 
+      //添加横坐标轴并通过编号获取对应的横轴标签
+      gx.xBarrp=gx.timesvgrp.append("g")
+        .attr("class", "axis")
+        .attr("transform", "translate(0," + (th - padding) + ")")
+        .call(gx.xAxisrp);
+      gx.xBarrp.selectAll("text")
+        .text(function(d){return gx.xMarks[d];});
+      
+      //定义纵轴
+      gx.yAxisrp = d3.svg.axis()
+        .scale(gx.yScalerp)
+        .orient("left").ticks(7);
+
+      //添加纵轴
+      gx.yBarrp=gx.timesvgrp.append("g")
+          .attr("class", "axis")
+          .attr("transform", "translate("+padding+",0)")
+          .call(gx.yAxisrp);     
+      
+      //添加折线
+      gx.linerp = d3.svg.line()
+        .interpolate("monotone")
+        .x(function(d,i){return gx.xScalerp(i);})
+        .y(function(d){return gx.yScalerp(d);});
+      
+      gx.pathrp = gx.timesvgrp.append("path")
+        .attr("d", gx.linerp(gx.timedatar0))
+        .style("fill","#F00")
+        .style("fill","none")
+        .style("stroke-width",1)
+        .style("stroke","#F00")
+        .style("stroke-opacity",0.9);
+      //添加系列的小圆点
+      gx.timesvgrp.selectAll("circle")
+      .data(gx.timedatarp)
+      .enter()
+      .append("a")
+      .attr("xlink:href", "http://www.google.com")
+      .append("circle")
+      .attr("cx", function(d,i) {
+          return gx.xScalerp(i);
+      })  
+      .attr("cy", function(d) {
+          return gx.yScalerp(d);  
+      })  
+      .attr("r",5);
       }());
+
       /* One private function */
 
       gx.get_class = function( nodeid ) {
@@ -679,7 +751,7 @@ var GC = {
       gx.render_timeLine = function(data, datar0, datarp, nodeid)
       {
         var padding = 20;
-        var th = 300;
+        var th = 200;
         var tw = 400;
         var oldData = gx.timedata;
         var oldDatar0 = gx.timedatar0;
@@ -784,6 +856,46 @@ var GC = {
         .attr("cy", function(d) {
             return gx.yScaler0(d);  
         });
+        //rate to parent
+        oldDatarp = oldDatarp.slice(0,gx.timedata.length);
+        var circlerp = gx.timesvgrp.selectAll("circle").data(oldDatarp);
+        circlerp.exit().remove();
+        gx.timesvgrp.selectAll("circle")
+        .data(gx.timedatarp)
+        .enter()
+        .append("a")
+        .attr("xlink:href", "http://www.google.com")
+        .append("circle")
+        .attr("cx", function(d,i){
+          if(i>=oldData.length) return tw-padding; else return gx.xScalerp(i);
+        })  
+        .attr("cy",function(d,i){
+          if(i>=oldData.length) return th-padding; else return gx.yScalerp(d);
+        })  
+        gx.timesvgrp.selectAll("circle")
+        .attr("r",5)
+        .attr("fill","#09F");
+        gx.xScalerp.domain([0,newLength - 1]);   
+        gx.xAxisrp.scale(gx.xScalerp).ticks(cnt);
+        gx.xBarrp.transition().duration(_duration).call(gx.xAxisrp);
+        gx.xBarrp.selectAll("text").text(function(d){return gx.xMarks[d];});
+        gx.yScalerp.domain([0,d3.max(gx.timedatarp)]);       
+        gx.yBarrp.transition().duration(_duration).call(gx.yAxisrp);
+        gx.pathrp.transition().duration(_duration).attr("d",gx.linerp(gx.timedatarp));
+        //重绘4圆点 
+        var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
+        urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
+        gx.timesvgrp.selectAll("a")
+        .attr("xlink:href", function(d,i) {return urltmp + (1990+i).toString() + '.html';});
+        gx.timesvgrp.selectAll("circle")   
+        .transition()
+        .duration(_duration)
+        .attr("cx", function(d,i) {       
+            return gx.xScalerp(i);
+        })  
+        .attr("cy", function(d) {
+            return gx.yScalerp(d);  
+        });
       }   
 
       /* The wrapper around the 'core' nonleaf-rendering function.
@@ -847,7 +959,6 @@ var GC = {
       gx.gen_text = function (data) {
 
 	var text = "";
-/*
 	if ( data.headline ) 
 	  text += "<h2 class='headline'>" + data.headline + "</h2>";
 	else if ( data.title ) 
@@ -875,17 +986,6 @@ var GC = {
 	else if ( data.text ) {
 	  text += "<p>" + data.text + "</p>";
 	}
-*/
-	for (var i = 0; i < data.length; i++)
-	{
-//	  console.log(data[i]);
-          console.log(data[i].date);
-	  if (data[i].date)
-	  {
-	    text += "<h4 class= 'bydateline'>" + data[i].date + "</h4>";
-	  }
-	}
-//	text = data[0];
 	return text;
       }
 

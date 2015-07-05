@@ -59,12 +59,13 @@
       <!-- The right page is the side bar -->
       <div id='right-page'>
       	<div id='search-box'>
-      	<button onClick="javascript:GC.Node.load(9);">刷新数据</button>
-</p>
+	  <span class='text'><h3>Search Words :</h3>  </span>      	
+      	<input id = 'search-word'></input>
+      	<button onClick="GC.Node.search();">search</button>
       	</div>
 	<div id='right-page-top-box'>
 	  <form autocomplete='off' action=''>
-	  <span class='text'><h1>Choose Dataset :</h1>  </span>
+	  <span class='text'><h3>Choose Dataset :</h3>  </span>
 	  <select id='dataset' onchange="GC.load(this.options[selectedIndex].value);">
 	    <option value="rcv1">Reuters 1996-97 News articles</option>
 	    <option value="csxml" selected>CS Research papers (from citeseer)</option>

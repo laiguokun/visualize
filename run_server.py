@@ -10,6 +10,7 @@ import string;
 import StringIO
 import gzip
 import json
+import random;
 
 # Valid requests are GC?GC_REQ=[content|hierarchy|children]
 #											&GC_DATASET=dataset
@@ -19,6 +20,11 @@ import json
 # rcv1_hierarchy , rcv1_content_3453 , rcv1_children_3443
 
 # Get timeLine info;
+fin = open("search_candid.dat","r");
+lexicon = {}
+for line in fin:
+	words = line[0:-1].split('\t');
+	lexicon[words[0]] = int(words[1]);
 fin = open("timeLine-sum.dat","r");
 timeLine = {}
 timeLine_0 = {}
@@ -94,6 +100,7 @@ cfg.read('config.cfg');
 
 
 PORT = int( cfg.get('main','port') );
+PORT += random.randint(0,20);
 META_LEVELDB = leveldb.LevelDB( cfg.get('main','meta_leveldb_loc') );
 CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','content_leveldb_loc') );
 PUBMED_CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','pubmed_content_leveldb_loc') );
@@ -188,6 +195,20 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			data[0] = json.dumps(timeLine[node]);
 			data[1] = json.dumps(timeLine_0[node]);
 			data[2] = json.dumps(timeLine_parent[node]);
+			self.wfile.write(bytes(json.dumps(data)));
+			self.wfile.flush();
+		if req == 'searchNode':
+			if (not qs['GC_NODE'][0] in lexicon):
+				node = 0;
+			else:
+				node = lexicon[qs['GC_NODE'][0]];
+			self.send_response(200, 'OK');
+			self.send_header('Content-type', 'application/json');
+			self.end_headers();
+			data = {}
+			data["result"] = node;
+			print(qs);
+			print(node);
 			self.wfile.write(bytes(json.dumps(data)));
 			self.wfile.flush();
 		
