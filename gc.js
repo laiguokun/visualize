@@ -207,7 +207,8 @@ var GC = {
       var data1 = JSON.parse(dataset[0]);
       var data2 = JSON.parse(dataset[1]);
       var data3 = JSON.parse(dataset[2]);
-      Node.graphics.render_timeLine(data1, data2, data3, Node.key);
+      var data4 = JSON.parse(dataset[3]);
+      Node.graphics.render_timeLine(data1, data2, data3, data4, Node.key);
     }
     /* Loads the node - calls the 'on_load' on data receive */
 
@@ -336,7 +337,7 @@ var GC = {
       gx.timedatar0 = [];
       gx.timedatarp = [];
       gx.xMarks = [];
-      gx.diameter = Math.max( x , 600 );
+      gx.diameter = Math.max( x , 500 );
 
       gx.format = d3.format(",d");
 
@@ -385,7 +386,7 @@ var GC = {
       (function setup_graphics(){
 
 	/* Add <svg> tag */
-	var svg = d3.select("#left-page").append("svg")
+	var svg = d3.select("#graph-part").append("svg")
 	      .attr("width" , gx.diameter )
 	      .attr("height" , gx.diameter );
 
@@ -748,7 +749,7 @@ var GC = {
       gx.render_timeLine_mouse_action = function(nodeid,clear) {
       }
 
-      gx.render_timeLine = function(data, datar0, datarp, nodeid)
+      gx.render_timeLine = function(data, datar0, datarp, datart, nodeid)
       {
         var padding = 20;
         var th = 200;
@@ -896,6 +897,26 @@ var GC = {
         .attr("cy", function(d) {
             return gx.yScalerp(d);  
         });
+
+
+
+        //relate topic
+        var rtopic = document.getElementById("relate-topic-content");
+        while (rtopic.hasChildNodes()) {   
+          rtopic.removeChild(rtopic.firstChild);
+        }
+        var textnode = document.createTextNode("relate topic: ")
+        rtopic.appendChild(textnode);
+        for (var i = 0; i < datart.length; i++)
+        {
+          var node = document.createElement("a");
+          var textnode = document.createTextNode("Topic" + datart[i].toString()+ " ");
+          node.appendChild(textnode);
+          node.href = "javascript:void(0)";
+          node.index = datart[i].toString();
+          node.onclick = function(){Node.load(this.index)};
+          rtopic.appendChild(node);
+        }
       }   
 
       /* The wrapper around the 'core' nonleaf-rendering function.

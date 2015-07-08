@@ -94,6 +94,14 @@ for line in fin:
 	for year in range(minnum, maxnum + 1):
 		if (not year in timeLine_parent[words[0]]):
 			timeLine_parent[words[0]][year] = 0;
+
+fin = open("relate_topic.dat" , "r");
+relate_topic = {}
+for line in fin:
+	words = line[0:-1].split('\t');
+	relate_topic[words[0]] = words[1:];
+
+
 # Get configuration from config.cfg
 cfg = ConfigParser.ConfigParser();
 cfg.read('config.cfg');
@@ -195,6 +203,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			data[0] = json.dumps(timeLine[node]);
 			data[1] = json.dumps(timeLine_0[node]);
 			data[2] = json.dumps(timeLine_parent[node]);
+			if (not node in relate_topic):
+				data[3] = json.dumps({});
+			else:
+				data[3] = json.dumps(relate_topic[node]);
 			self.wfile.write(bytes(json.dumps(data)));
 			self.wfile.flush();
 		if req == 'searchNode':
