@@ -227,12 +227,32 @@ var GC = {
 
     Node.search = function(){
       var s = document.getElementById("search-word").value;
+      Node.search_word(s);
+    }
+    Node.search_word = function(s){
       GC.GetValueFromServer({type:"searchNode", node:s}, Node.search_node);
     }
     Node.search_node = function(s){
       var data = JSON.parse(s);
-      var node = data.result;
-      Node.load(node);
+      var search_node = data.result;
+      var relate_word = data.relate;
+      var rtopic = document.getElementById("relate-word-content");
+      while (rtopic.hasChildNodes()) {   
+        rtopic.removeChild(rtopic.firstChild);
+      }
+      var textnode = document.createTextNode("relate word: ")
+      rtopic.appendChild(textnode);
+      for (var i = 0; i < relate_word.length; i++)
+      {
+        var node = document.createElement("a");
+        var textnode = document.createTextNode(relate_word[i].toString()+ " ");
+        node.appendChild(textnode);
+        node.href = "javascript:void(0)";
+        node.index = relate_word[i].toString();
+        node.onclick = function(){Node.search_word(this.index)};
+        rtopic.appendChild(node);
+      }
+      Node.load(search_node);
     }
     /* For leaf-nodes, this renders the 'next' instance (if any).
      * No effect on non-leaf nodes.
@@ -1029,7 +1049,7 @@ var GC = {
 	var fp = function(){ Node.load_prev();}
 
 	/* Dim the background */
-	document.getElementById('dim').style.display='block';
+//	document.getElementById('dim').style.display='block';
 	document.getElementById('dim').onclick = f;
 
 	/* Hook the keys */
@@ -1043,7 +1063,7 @@ var GC = {
 
 	/* Bring the overlay to the front */
 	document.getElementById('overlay').style.display='block';
-	document.body.style.overflow='hidden';
+//	document.body.style.overflow='hidden';
       };
 
 

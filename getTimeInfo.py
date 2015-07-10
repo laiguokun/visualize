@@ -47,28 +47,33 @@ root = 0;
 findAllNode(META_LEVELDB, CONTENT_LEVELDB, root);
 fout = open("timeLine-sum.dat", "w");
 for node in timeLine.keys():
-	if (node == 0):
-		print('yes');
 	fout.write(str(node));
-	for time in timeLine[node].keys():
-		fout.write('\t' + str(time) + ":" + str(timeLine[node][time]));
+	for year in range(1990,2005):
+		if (str(year) in timeLine[node]):
+			fout.write('\t' + str(timeLine[node][str(year)]));
+		else:
+			fout.write('\t0');
 	fout.write('\n');
 fout.flush();
 fout = open("timeLine-rateto0.dat", "w")
 for node in timeLine.keys():
+	print(node);
 	fout.write(str(node));
-	for time in timeLine[node].keys():
-		if (not time in timeLine[0]):
-			fout.write('\t'+str(1));
-		fout.write('\t' + str(time) + ':' + str(float(timeLine[node][time])/float(timeLine[0][time])));
+	for year in range(1990,2005):
+		if (str(year) in timeLine[node]):
+			fout.write('\t' + str(float(timeLine[node][str(year)])/float(timeLine[0][str(year)])));
+		else:
+			fout.write('\t0');
 	fout.write('\n');
 fout.flush();
 fout = open("timeLine-ratetoparent.dat","w");
 for node in timeLine.keys():
 	fout.write(str(node));
-	if (node != 0):
-		for time in timeLine[node].keys():
-			fout.write('\t' + str(time) + ':' + str(float(timeLine[node][time])/float(timeLine[parent[node]][time])));
+	for year in range(1990,2005):
+		if (node != 0 and str(year) in timeLine[node]):
+			fout.write('\t' + str(float(timeLine[node][str(year)])/float(timeLine[parent[node]][str(year)])));
+		else:
+			fout.write('\t0');
 	fout.write('\n');
 fout.flush();
 	

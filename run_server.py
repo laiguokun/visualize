@@ -25,75 +25,44 @@ lexicon = {}
 for line in fin:
 	words = line[0:-1].split('\t');
 	lexicon[words[0]] = int(words[1]);
-fin = open("timeLine-sum.dat","r");
+fin = open("timeLine-sum-com.dat","r");
 timeLine = {}
 timeLine_0 = {}
 timeLine_parent = {}
 
+minnum = 1990;
+maxnum = 2010;
 for line in fin:
 	words = line[0:-1].split('\t');
 	timeLine[words[0]] = {}
-	minnum = 2004;
-	maxnum = 1990;
 	for i in range(1,len(words)):
-		year = words[i].split(':')[0];
-		if (int(year) < 1990):
-			continue;
-		if (int(year) > 2004):
-			continue;
-		num = words[i].split(':')[1];
-		timeLine[words[0]][year] = num;
-	maxnum = 2004;
-	minnum = 1990;
+		timeLine[words[0]][str(1989+i)] = words[i];
 	timeLine[words[0]]["max"] = maxnum;
 	timeLine[words[0]]["min"] = minnum;
-	for year in range(minnum, maxnum + 1):
-		if (not year in timeLine[words[0]]):
-			timeLine[words[0]][year] = 0;
 
-fin = open("timeLine-rateto0.dat","r");
+fin = open("timeLine-rateto0-com.dat","r");
 for line in fin:
 	words = line[0:-1].split('\t');
 	timeLine_0[words[0]] = {}
-	minnum = 2004;
-	maxnum = 1990;
 	for i in range(1,len(words)):
-		year = words[i].split(':')[0];
-		if (int(year) < 1990):
-			continue;
-		if (int(year) > 2004):
-			continue;
-		num = words[i].split(':')[1];
-		timeLine_0[words[0]][year] = num;
-	maxnum = 2004;
-	minnum = 1990;
-	timeLine_0[words[0]]["max"] = maxnum;
+		timeLine_0[words[0]][str(1989+i)] = words[i];
 	timeLine_0[words[0]]["min"] = minnum;
-	for year in range(minnum, maxnum + 1):
-		if (not year in timeLine_0[words[0]]):
-			timeLine_0[words[0]][year] = 0;
+	timeLine_0[words[0]]["max"] = maxnum;
 
-fin = open("timeLine-ratetoparent.dat","r");
+fin = open("timeLine-ratetoparent-com.dat","r");
 for line in fin:
 	words = line[0:-1].split('\t');
 	timeLine_parent[words[0]] = {}
-	minnum = 2004;
-	maxnum = 1990;
 	for i in range(1,len(words)):
-		year = words[i].split(':')[0];
-		if (int(year) < 1990):
-			continue;
-		if (int(year) > 2004):
-			continue;
-		num = words[i].split(':')[1];
-		timeLine_parent[words[0]][year] = num;
-	maxnum = 2004;
-	minnum = 1990;
+		timeLine_parent[words[0]][str(1989+i)] = words[i];
 	timeLine_parent[words[0]]["max"] = maxnum;
 	timeLine_parent[words[0]]["min"] = minnum;
-	for year in range(minnum, maxnum + 1):
-		if (not year in timeLine_parent[words[0]]):
-			timeLine_parent[words[0]][year] = 0;
+
+fin = open("relate_word.dat", "r");
+relate_word = {}
+for line in fin:
+	words = line[0:-1].split('\t');
+	relate_word[words[0]] = words[1:];
 
 fin = open("relate_topic.dat" , "r");
 relate_topic = {}
@@ -214,11 +183,15 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				node = 0;
 			else:
 				node = lexicon[qs['GC_NODE'][0]];
+			relate = {}
+			if (qs['GC_NODE'][0] in relate_word):
+				relate = relate_word[qs['GC_NODE'][0]];
 			self.send_response(200, 'OK');
 			self.send_header('Content-type', 'application/json');
 			self.end_headers();
 			data = {}
 			data["result"] = node;
+			data["relate"] = relate;
 			print(qs);
 			print(node);
 			self.wfile.write(bytes(json.dumps(data)));

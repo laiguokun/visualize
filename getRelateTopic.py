@@ -24,7 +24,7 @@ def findAllNode(db, depth, now):
 				word = desc[i];
 				if (not word in lexicon):
 					lexicon[word] = [];
-			lexicon[word].append(x);
+				lexicon[word].append(x);
 			findAllNode(db, depth + 1, x);
 
 
