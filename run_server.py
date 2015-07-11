@@ -25,38 +25,6 @@ lexicon = {}
 for line in fin:
 	words = line[0:-1].split('\t');
 	lexicon[words[0]] = int(words[1]);
-fin = open("timeLine-sum-com.dat","r");
-timeLine = {}
-timeLine_0 = {}
-timeLine_parent = {}
-
-minnum = 1990;
-maxnum = 2010;
-for line in fin:
-	words = line[0:-1].split('\t');
-	timeLine[words[0]] = {}
-	for i in range(1,len(words)):
-		timeLine[words[0]][str(1989+i)] = words[i];
-	timeLine[words[0]]["max"] = maxnum;
-	timeLine[words[0]]["min"] = minnum;
-
-fin = open("timeLine-rateto0-com.dat","r");
-for line in fin:
-	words = line[0:-1].split('\t');
-	timeLine_0[words[0]] = {}
-	for i in range(1,len(words)):
-		timeLine_0[words[0]][str(1989+i)] = words[i];
-	timeLine_0[words[0]]["min"] = minnum;
-	timeLine_0[words[0]]["max"] = maxnum;
-
-fin = open("timeLine-ratetoparent-com.dat","r");
-for line in fin:
-	words = line[0:-1].split('\t');
-	timeLine_parent[words[0]] = {}
-	for i in range(1,len(words)):
-		timeLine_parent[words[0]][str(1989+i)] = words[i];
-	timeLine_parent[words[0]]["max"] = maxnum;
-	timeLine_parent[words[0]]["min"] = minnum;
 
 fin = open("relate_word.dat", "r");
 relate_word = {}
@@ -81,7 +49,10 @@ PORT += random.randint(0,20);
 META_LEVELDB = leveldb.LevelDB( cfg.get('main','meta_leveldb_loc') );
 CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','content_leveldb_loc') );
 PUBMED_CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','pubmed_content_leveldb_loc') );
-
+sumdb = leveldb.LevelDB( cfg.get('main','timeLine-sum_leveldb_loc'));
+r0db = leveldb.LevelDB( cfg.get('main','timeLine-rateto0_leveldb_loc'));
+rpdb = leveldb.LevelDB( cfg.get('main','timeLine-ratetop_leveldb_loc'));
+wsdb = leveldb.LevelDB( cfg.get('main','wordSeries_leveldb_loc'));
 fcontent = {};
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
@@ -165,17 +136,34 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			return;
 		if req == 'timeLine':
 			node = qs['GC_NODE'][0];
-			self.send_response(200, 'OK');
-			self.send_header('Content-type', 'application/json');
-			self.end_headers();
+			try:
+				valuesum = sumdb.Get(node);
+			except KeyError:
+				valuesum = json.dumps({});
+			try:
+				valuer0 = r0db.Get(node);
+			except KeyError:
+				valuer0 = json.dumps({});
+			try:
+				valuerp = rpdb.Get(node);
+			except KeyError:
+				valuerp = json.dumps({});
+			try:
+				valuews = wsdb.Get(node);
+			except KeyError:
+				valuews = json.dumps({});
 			data = {};
-			data[0] = json.dumps(timeLine[node]);
-			data[1] = json.dumps(timeLine_0[node]);
-			data[2] = json.dumps(timeLine_parent[node]);
+			data[0] = valuesum;
+			data[1] = valuer0;
+			data[2] = valuerp;
 			if (not node in relate_topic):
 				data[3] = json.dumps({});
 			else:
 				data[3] = json.dumps(relate_topic[node]);
+			data[4] = valuews;
+			self.send_response(200, 'OK');
+			self.send_header('Content-type', 'application/json');
+			self.end_headers();
 			self.wfile.write(bytes(json.dumps(data)));
 			self.wfile.flush();
 		if req == 'searchNode':
@@ -192,8 +180,6 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			data = {}
 			data["result"] = node;
 			data["relate"] = relate;
-			print(qs);
-			print(node);
 			self.wfile.write(bytes(json.dumps(data)));
 			self.wfile.flush();
 		

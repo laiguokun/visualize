@@ -136,6 +136,12 @@ var GC = {
     Node.display_state = -1;
     Node.data = null;
     Node.dataset = new Array();
+    Node.ws = null;
+    Node.showWord = function(s)
+    {
+      var data = JSON.parse(Node.ws[s]);
+      Node.graphics.render_wordseries(data);
+    }
     /* Sets the Node information to match the input data */    
 
     Node.set_data = function (_data) {
@@ -208,7 +214,9 @@ var GC = {
       var data2 = JSON.parse(dataset[1]);
       var data3 = JSON.parse(dataset[2]);
       var data4 = JSON.parse(dataset[3]);
-      Node.graphics.render_timeLine(data1, data2, data3, data4, Node.key);
+      var data5 = JSON.parse(dataset[4]);
+      Node.ws = data5;
+      Node.graphics.render_timeLine(data1, data2, data3, data4, data5,Node.key);
     }
     /* Loads the node - calls the 'on_load' on data receive */
 
@@ -356,7 +364,9 @@ var GC = {
       gx.timedata = [];
       gx.timedatar0 = [];
       gx.timedatarp = [];
+      gx.timedataws = []
       gx.xMarks = [];
+      gx.xMarksws = []
       gx.diameter = Math.max( x , 500 );
 
       gx.format = d3.format(",d");
@@ -397,6 +407,15 @@ var GC = {
       gx.yBarrp = null;
       gx.linerp = null;
       gx.pathrp = null;
+
+      gx.timesvgws = null;
+      gx.xScalews = null;
+      gx.yScalews = null;
+      gx.xAxisws = null;
+      gx.xBarws = null;
+      gx.yBarws = null;
+      gx.linews = null;
+      gx.pathws = null;
 
       /* Add a svg element to the left-page. Well, you can put this in the html
        * as well. Add 'filters' to the svg object. Currently the only filter is
@@ -644,6 +663,75 @@ var GC = {
           return gx.yScalerp(d);  
       })  
       .attr("r",5);
+      //graph to show word series
+      gx.timesvgws = d3.select("#wordseriesgraphbox")
+      .append("svg")
+      .attr("width",tw)
+      .attr("height",th);
+      gx.timesvgws.append("g")
+      .append("rect")
+      .attr("x",0)
+      .attr("y",0)
+      .attr("width",tw)
+      .attr("height",th)
+      .style("fill","#FFF")
+      .style("stroke-width",2)
+      .style("stroke","#E7E7E7");
+      gx.xScalews = d3.scale.linear()
+        .domain([0,gx.timedataws.length-1])
+        .range([padding,tw-padding]);
+      gx.yScalews = d3.scale.linear()
+        .domain([0,d3.max(gx.timedataws)])
+        .range([th-padding,padding]);
+      gx.xAxisws = d3.svg.axis()
+        .scale(gx.xScalews)  
+        .orient("bottom").ticks(gx.timedataws.length); 
+      //添加横坐标轴并通过编号获取对应的横轴标签
+      gx.xBarws=gx.timesvgws.append("g")
+        .attr("class", "axis")
+        .attr("transform", "translate(0," + (th - padding) + ")")
+        .call(gx.xAxisws);
+      gx.xBarws.selectAll("text")
+        .text(function(d){return gx.xMarksws[d];});
+      
+      //定义纵轴
+      gx.yAxisws = d3.svg.axis()
+        .scale(gx.yScalews)
+        .orient("left").ticks(7);
+
+      //添加纵轴
+      gx.yBarws=gx.timesvgws.append("g")
+          .attr("class", "axis")
+          .attr("transform", "translate("+padding+",0)")
+          .call(gx.yAxisws);     
+      
+      //添加折线
+      gx.linews = d3.svg.line()
+        .interpolate("monotone")
+        .x(function(d,i){return gx.xScalews(i);})
+        .y(function(d){return gx.yScalews(d);});
+      
+      gx.pathws = gx.timesvgws.append("path")
+        .attr("d", gx.linews(gx.timedataws))
+        .style("fill","#F00")
+        .style("fill","none")
+        .style("stroke-width",1)
+        .style("stroke","#F00")
+        .style("stroke-opacity",0.9);
+      //添加系列的小圆点
+      gx.timesvgws.selectAll("circle")
+      .data(gx.timedataws)
+      .enter()
+      .append("a")
+      .attr("xlink:href", "http://www.google.com")
+      .append("circle")
+      .attr("cx", function(d,i) {
+          return gx.xScalews(i);
+      })  
+      .attr("cy", function(d) {
+          return gx.yScalews(d);  
+      })  
+      .attr("r",5);
       }());
 
       /* One private function */
@@ -769,7 +857,7 @@ var GC = {
       gx.render_timeLine_mouse_action = function(nodeid,clear) {
       }
 
-      gx.render_timeLine = function(data, datar0, datarp, datart, nodeid)
+      gx.render_timeLine = function(data, datar0, datarp, datart, dataws, nodeid)
       {
         var padding = 20;
         var th = 200;
@@ -787,7 +875,7 @@ var GC = {
           gx.timedata.push(parseInt(data[year]));
           gx.timedatar0.push(parseFloat(datar0[year]));
           gx.timedatarp.push(parseFloat(datarp[year]));
-          if ((year-data.min) % 5 ==0)
+          if ((year-data.min) % 2 ==0)
           {
             gx.xMarks.push(year);
             cnt += 1;
@@ -827,7 +915,7 @@ var GC = {
         var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
         urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
         gx.timesvg.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1990+i).toString() + '.html';});
+        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
         gx.timesvg.selectAll("circle")   
         .transition()
         .duration(_duration)
@@ -867,7 +955,7 @@ var GC = {
         var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
         urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
         gx.timesvgr0.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1990+i).toString() + '.html';});
+        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
         gx.timesvgr0.selectAll("circle")   
         .transition()
         .duration(_duration)
@@ -907,7 +995,7 @@ var GC = {
         var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
         urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
         gx.timesvgrp.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1990+i).toString() + '.html';});
+        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
         gx.timesvgrp.selectAll("circle")   
         .transition()
         .duration(_duration)
@@ -937,6 +1025,89 @@ var GC = {
           node.onclick = function(){Node.load(this.index)};
           rtopic.appendChild(node);
         }
+
+        var wordset = Object.keys(dataws);
+        var wsnode = document.getElementById("wordselect");
+        while (wsnode.hasChildNodes())
+        {
+          wsnode.removeChild(wsnode.firstChild);
+        }
+        for (var i = 0; i < wordset.length; i++)
+        {
+          var node = document.createElement("option");
+          node.value = wordset[i];
+          var textnode = document.createTextNode(wordset[i]);
+          node.appendChild(textnode);
+          wsnode.appendChild(node);
+        }
+      }
+
+      gx.render_wordseries = function (data)
+      {
+        var padding = 20;
+        var th = 200;
+        var tw = 400;
+        var oldData = gx.timedataws;
+        gx.timedataws = [];
+        gx.xMarksws = []
+        var cnt = 0;
+        for (var year = 1994; year <= 2004; year ++)
+        {
+          var tmp = parseInt(data[year]);
+          if (tmp == 0)
+            gx.timedataws.push(0);
+          else
+            gx.timedataws.push(1.0/tmp);
+          if ((year-1994) % 2 ==0)
+          {
+            gx.xMarksws.push(year);
+            cnt += 1;
+          }
+          else
+            gx.xMarksws.push(" ");
+        }
+        var newLength = gx.timedataws.length;
+        var _duration = 1000;
+        //render sum box
+        oldData = oldData.slice(0,gx.timedataws.length);
+        var circle = gx.timesvgws.selectAll("circle").data(oldData);
+        circle.exit().remove();
+        gx.timesvgws.selectAll("circle")
+        .data(gx.timedataws)
+        .enter()
+        .append("a")
+        .attr("xlink:href", "http://www.google.com")
+        .append("circle")
+        .attr("cx", function(d,i){
+          if(i>=oldData.length) return tw-padding; else return gx.xScale(i);
+        })  
+        .attr("cy",function(d,i){
+          if(i>=oldData.length) return th-padding; else return gx.yScale(d);
+        })  
+        gx.timesvgws.selectAll("circle")
+        .attr("r",5)
+        .attr("fill","#09F");
+        gx.xScalews.domain([0,newLength - 1]);   
+        gx.xAxisws.scale(gx.xScalews).ticks(cnt);
+        gx.xBarws.transition().duration(_duration).call(gx.xAxisws);
+        gx.xBarws.selectAll("text").text(function(d){return gx.xMarksws[d];});
+        gx.yScalews.domain([0,d3.max(gx.timedataws)]);       
+        gx.yBarws.transition().duration(_duration).call(gx.yAxisws);
+        gx.pathws.transition().duration(_duration).attr("d",gx.linews(gx.timedataws));
+        //重绘4圆点 
+        var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
+        urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
+        gx.timesvgws.selectAll("a")
+        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
+        gx.timesvgws.selectAll("circle")   
+        .transition()
+        .duration(_duration)
+        .attr("cx", function(d,i) {       
+            return gx.xScalews(i);
+        })  
+        .attr("cy", function(d) {
+            return gx.yScalews(d);  
+        }); 
       }   
 
       /* The wrapper around the 'core' nonleaf-rendering function.

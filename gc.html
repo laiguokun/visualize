@@ -89,6 +89,14 @@
 	<div id='wordbox'></div>
 	<div id='rateto0box'></div>
 	<div id='ratetoparentbox'></div>
+  <div id='wordSeriesbox'>
+    <form autocomplete='off' action =''>
+    <span class='text'><h3>Choose Word :</h3>  </span>
+    <select id='wordselect' onchange="GC.Node.showWord(this.options[selectedIndex].value);">
+    </select>      
+    </form>
+  </div>
+  <div id = 'wordseriesgraphbox'></div>
       </div>
     </div>
 
