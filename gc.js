@@ -138,6 +138,7 @@ var GC = {
     Node.dataset = new Array();
     Node.ws = null;
     Node.child_timeLine = null;
+    Node.desc = null;
     Node.showWord = function(s)
     {
       var data = JSON.parse(Node.ws[s]);
@@ -201,6 +202,7 @@ var GC = {
       var tmp = JSON.parse(s);
       Node.set_data( JSON.parse(tmp[0]) );
       var tmptimeline = (JSON.parse(tmp[1]));
+      Node.desc = (JSON.parse(tmp[2])).desc;
       Node.child_timeLine = new Array();
       var nodeset = Object.keys(tmptimeline);
       for (var i = 0; i < nodeset.length; i++)
@@ -318,7 +320,11 @@ var GC = {
 	d3data.desc[n] = Node.get_child_desc(i);
   d3data.child_timeLine = Node.child_timeLine;
       }
-      
+      var showdesc = document.getElementById('current-describe');
+      if (Node.desc.length != 0 && Node.desc.length != undefined)
+        showdesc.innerHTML = "<p>" + ("describe:" + Node.desc.join(", ")) + "</p>"
+      else
+        showdesc.innerHTML = "";
       Node.graphics.render_nonleaf( d3data );
     }
 
@@ -474,6 +480,14 @@ var GC = {
       .style("fill","#FFF")
       .style("stroke-width",2)
       .style("stroke","#E7E7E7");
+
+      gx.timesvg.append("text")
+      .attr("x", (tw / 2))             
+      .attr("y", (padding / 2))
+      .attr("text-anchor", "middle")  
+      .style("font-size", "16px") 
+      .text("the number of paper vs year");
+
       gx.xScale = d3.scale.linear()
         .domain([0,gx.timedata.length-1])
         .range([padding,tw-padding]);
@@ -483,7 +497,7 @@ var GC = {
       gx.xAxis = d3.svg.axis()
         .scale(gx.xScale)  
         .orient("bottom").ticks(gx.timedata.length);
-          
+      
       //添加横坐标轴并通过编号获取对应的横轴标签
       gx.xBar=gx.timesvg.append("g")
         .attr("class", "axis")
@@ -546,6 +560,14 @@ var GC = {
       .style("fill","#FFF")
       .style("stroke-width",2)
       .style("stroke","#E7E7E7");
+
+      gx.timesvgr0.append("text")
+      .attr("x", (tw / 2))             
+      .attr("y", (padding / 2))
+      .attr("text-anchor", "middle")  
+      .style("font-size", "12px") 
+      .text("the rate to dataset of paper number vs years");
+
       gx.xScaler0 = d3.scale.linear()
         .domain([0,gx.timedatar0.length-1])
         .range([padding,tw-padding]);
@@ -615,6 +637,13 @@ var GC = {
       .style("fill","#FFF")
       .style("stroke-width",2)
       .style("stroke","#E7E7E7");
+
+     gx.timesvgrp.append("text")
+      .attr("x", (tw / 2))             
+      .attr("y", (padding / 2))
+      .attr("text-anchor", "middle")  
+      .style("font-size", "12px") 
+      .text("the rate to parent of paper number vs years");
       gx.xScalerp = d3.scale.linear()
         .domain([0,gx.timedatarp.length-1])
         .range([padding,tw-padding]);
@@ -684,6 +713,12 @@ var GC = {
       .style("fill","#FFF")
       .style("stroke-width",2)
       .style("stroke","#E7E7E7");
+      gx.timesvgws.append("text")
+      .attr("x", (tw / 2))             
+      .attr("y", (padding / 2))
+      .attr("text-anchor", "middle")  
+      .style("font-size", "12px") 
+      .text("the position of word in current topic vs years");
       gx.xScalews = d3.scale.linear()
         .domain([0,gx.timedataws.length-1])
         .range([padding,tw-padding]);
@@ -1023,8 +1058,11 @@ var GC = {
         while (rtopic.hasChildNodes()) {   
           rtopic.removeChild(rtopic.firstChild);
         }
-        var textnode = document.createTextNode("relate topic: ")
-        rtopic.appendChild(textnode);
+        if (datart.length != 0 && datart.length != undefined)
+        {
+          var textnode = document.createTextNode("relate topic: ")
+          rtopic.appendChild(textnode);
+        }
         for (var i = 0; i < datart.length; i++)
         {
           var node = document.createElement("a");

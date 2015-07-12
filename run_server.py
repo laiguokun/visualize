@@ -53,6 +53,7 @@ sumdb = leveldb.LevelDB( cfg.get('main','timeLine-sum_leveldb_loc'));
 r0db = leveldb.LevelDB( cfg.get('main','timeLine-rateto0_leveldb_loc'));
 rpdb = leveldb.LevelDB( cfg.get('main','timeLine-ratetop_leveldb_loc'));
 wsdb = leveldb.LevelDB( cfg.get('main','wordSeries_leveldb_loc'));
+descdb = leveldb.LevelDB(cfg.get('main', 'desc_leveldb_loc'));
 fcontent = {};
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
@@ -130,6 +131,8 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			data = {}
 			data[0] = value;
 			tmp = {}
+			desc = {}
+			desc["desc"] = {};
 			datanode = json.loads(value);
 			if (datanode["isleaf"] == 0):
 				for child in datanode["children"]:
@@ -139,7 +142,12 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 					except:
 						valuenode = json.dumps({});
 					tmp[node] = valuenode;
+			try:
+				valuedesc = descdb.Get(str(qs['GC_NODE'][0]));
+			except:
+				valuedesc = json.dumps(desc);
 			data[1] = json.dumps(tmp);
+			data[2] = valuedesc;
 			self.send_response(200, 'OK' );
 			self.send_header('Content-type', 'application/json')
 			self.end_headers()	
