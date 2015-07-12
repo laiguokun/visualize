@@ -123,7 +123,28 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 		# Serve key-value request
 		if req == 'children':
 			key = qs['GC_DATASET'][0] + "_" + req + "_" + qs['GC_NODE'][0];
-			self.serve_key ( META_LEVELDB , key );
+			try:
+				value = META_LEVELDB.Get(key);
+			except:
+				value = json.dumps({});
+			data = {}
+			data[0] = value;
+			tmp = {}
+			datanode = json.loads(value);
+			if (datanode["isleaf"] == 0):
+				for child in datanode["children"]:
+					node = child["node"];
+					try:
+						valuenode = rpdb.Get(str(node));
+					except:
+						valuenode = json.dumps({});
+					tmp[node] = valuenode;
+			data[1] = json.dumps(tmp);
+			self.send_response(200, 'OK' );
+			self.send_header('Content-type', 'application/json')
+			self.end_headers()	
+			print " Serving key " + key;
+			self.wfile.write(bytes(json.dumps(data)))
 			return;
 
 		# Serve key-value request

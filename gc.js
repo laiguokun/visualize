@@ -137,6 +137,7 @@ var GC = {
     Node.data = null;
     Node.dataset = new Array();
     Node.ws = null;
+    Node.child_timeLine = null;
     Node.showWord = function(s)
     {
       var data = JSON.parse(Node.ws[s]);
@@ -197,8 +198,13 @@ var GC = {
     */
     Node.on_load = function (s) {
       var prev_isleaf = Node.is_leaf();
-      Node.set_data( JSON.parse(s) );
-
+      var tmp = JSON.parse(s);
+      Node.set_data( JSON.parse(tmp[0]) );
+      var tmptimeline = (JSON.parse(tmp[1]));
+      Node.child_timeLine = new Array();
+      var nodeset = Object.keys(tmptimeline);
+      for (var i = 0; i < nodeset.length; i++)
+        Node.child_timeLine[nodeset[i]] = JSON.parse(tmptimeline[nodeset[i]]);
       if ( Node.is_leaf() ) 
 	Node.render_leaf();
       else {
@@ -310,6 +316,7 @@ var GC = {
 	var n = Node.get_child_id(i);
 	d3data.children[i].nodeid = n;
 	d3data.desc[n] = Node.get_child_desc(i);
+  d3data.child_timeLine = Node.child_timeLine;
       }
       
       Node.graphics.render_nonleaf( d3data );
@@ -368,7 +375,7 @@ var GC = {
       gx.xMarks = [];
       gx.xMarksws = []
       gx.diameter = Math.max( x , 500 );
-
+      gx.grow_rate = null;
       gx.format = d3.format(",d");
 
       /* Define the circle-circle pack layout */
@@ -787,7 +794,10 @@ var GC = {
 	node.select("circle")
 	  .attr("r", function (d) { return d.r; })
 	  .attr("id" , function (d) { return "node" + d.nodeid; } )
-
+    .style("fill", function(d) {
+      return "rgb( " + Math.round(255.0 * gx.grow_rate[d.nodeid]) 
+        + "," + Math.round(255.0 * (1.0-gx.grow_rate[d.nodeid])) +  ", 0)";  
+  });
 	/* Setup the onclick function to load the corresponding child-node */
 
 	node.select("circle")
@@ -1036,6 +1046,7 @@ var GC = {
         {
           var node = document.createElement("option");
           node.value = wordset[i];
+          if (i==0) node.selected = true;
           var textnode = document.createTextNode(wordset[i]);
           node.appendChild(textnode);
           wsnode.appendChild(node);
@@ -1116,6 +1127,13 @@ var GC = {
 
       gx.render_nonleaf = function (d3data) {
 
+      gx.grow_rate = new Array();
+      var nodeset = Object.keys(d3data.child_timeLine);
+      for (var i = 0; i < nodeset.length; i++)
+      {
+        gx.grow_rate[nodeset[i]] = 10 * (d3data.child_timeLine[nodeset[i]][2004] - d3data.child_timeLine[nodeset[i]][2002]);
+        gx.grow_rate[nodeset[i]] = (Math.exp(gx.grow_rate[nodeset[i]])/ (1 + Math.exp(gx.grow_rate[nodeset[i]])));
+      }
 	/* Remove any previous data i.e. 'transition out' the container */
 
 	if ( gx.d3data ) {
