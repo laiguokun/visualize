@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+<html>
+  <head>
+    <link href='http://fonts.googleapis.com/css?family=Fauna+One' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="css/compare.css">
+    <script src="/js/d3.v3.min.js"></script>
+  </head>
+
+  <body>
+    <!-- This is the normal page -->
+    <div id='page'>
+      <!-- The left-page has the SVG container and canvas -->
+      <div id='left-page'>
+        <div id='graph-part'></div>
+        <div id='setboxA' class = 'setboxA'>
+          <span class='text'>Set words A :  </span>       
+          <input id = 'set-word-A'></input>
+          <button onClick="javaScript:void(0)">Set Words A</button>
+        </div>
+        <div id='setboxB' class = 'setboxB'>
+          <span class='text'>Set words B :  </span>       
+          <input id = 'set-word-B'></input>
+          <button onClick="javaScript:void(0)">Set Words B</button>
+        </div>
+  	  </div>
+      <!-- The right page is the side bar -->
+      <div id='right-page'>
+        <div id='wordbox'></div>
+        <div id='rateto0box'></div>
+	      <div id='ratetoparentbox'></div>
+        <div id='wordSeriesbox'>
+          <form autocomplete='off' action =''>
+          <span class='text'><h3>Choose Word :</h3>  </span>
+          <select id='wordselect' onchange="GC.Node.showWord(this.options[selectedIndex].value);">
+          </select>      
+        </form>
+      </div>
+      <div id = 'wordseriesgraphbox'></div>
+        </div>
+    </div>
+
+  </body>
+  <script type="text/javascript" src="js/compare.js"></script>
+</html>
