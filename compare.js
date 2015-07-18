@@ -230,7 +230,7 @@ var GC = {
 	       .size([ gx.diameter-4 , gx.diameter-4 ])
 	       .padding(5)
 	       .value(function(d) { return d.size; });
-
+      gx.urladd = null;   
       /* SVG Container for all the display elements */
 
       gx.container = null;
@@ -251,6 +251,7 @@ var GC = {
       gx.yBarr0 = null;
       gx.liner0 = null;
       gx.pathr0 = null;
+      gx.pathr0B = null;
 
       gx.timesvgrp = null;
       gx.xScalerp = null;
@@ -260,6 +261,7 @@ var GC = {
       gx.yBarrp = null;
       gx.linerp = null;
       gx.pathrp = null;
+      gx.pathrpB = null;
 
       gx.timesvgws = null;
       gx.xScalews = null;
@@ -427,6 +429,13 @@ var GC = {
           .style("stroke-width",1)
           .style("stroke","#F00")
           .style("stroke-opacity",0.9);
+        gx.pathr0B=gx.timesvgr0.append("path")
+          .attr("d",gx.line(gx.timedatar0B))
+          .style("fill","#00F")
+          .style("fill","none")
+          .style("stroke-width",1)
+          .style("stroke","blue")
+          .style("stroke-opacity",0.9);
         //添加系列的小圆点
         gx.timesvgr0.selectAll("circle")
         .data(gx.timedatar0)
@@ -502,6 +511,14 @@ var GC = {
           .style("fill","none")
           .style("stroke-width",1)
           .style("stroke","#F00")
+          .style("stroke-opacity",0.9);
+
+        gx.pathrpB=gx.timesvgrp.append("path")
+          .attr("d",gx.line(gx.timedatarpB))
+          .style("fill","#00F")
+          .style("fill","none")
+          .style("stroke-width",1)
+          .style("stroke","blue")
           .style("stroke-opacity",0.9);
         //添加系列的小圆点
         gx.timesvgrp.selectAll("circle")
@@ -603,9 +620,8 @@ var GC = {
         var padding = 20;
         var th = 200;
         var tw = 400;
-        var oldData = gx.timedata;
-        var oldDatar0 = gx.timedatar0;
-        var oldDatarp = gx.timedatarp;
+        var oldData = gx.timedata;var oldDatar0 = gx.timedatar0;var oldDatarp = gx.timedatarp;
+        var oldDataB = gx.timedataB;var oldDatarpB = gx.timedatarpB;var oldDatar0B = gx.timedatar0B;
         gx.timedata = [];gx.timedatar0 = [];gx.timedatarp = [];
         gx.timedataB = [];gx.timedatar0B = [];gx.timedatarpB = [];
         gx.xMarks = [];
@@ -626,7 +642,7 @@ var GC = {
           var data = DATA_A.normal;
           var datar0 = DATA_A.r0;
           var datarp = DATA_A.rp;
-          for (var year = data.min; year <= data.max; year ++)
+          for (var year = 1994; year <= 2004; year ++)
           {
             gx.timedata.push(parseInt(data[year]));
             gx.timedatar0.push(parseFloat(datar0[year]));
@@ -634,7 +650,7 @@ var GC = {
           }
         }
         else
-          for (var year = data.min; year <= data.max; year ++)
+          for (var year = 1994; year <= 2004; year ++)
           {
             gx.timedata.push(0);
             gx.timedatar0.push(0);
@@ -645,7 +661,7 @@ var GC = {
           var dataB = DATA_B.normal;
           var datar0B = DATA_B.r0;
           var datarpB = DATA_B.rp;
-          for (var year = dataB.min; year <= dataB.max; year ++)
+          for (var year = 1994; year <= 2004; year ++)
           {
             gx.timedataB.push(parseInt(dataB[year]));
             gx.timedatar0B.push(parseFloat(datar0B[year]));
@@ -653,36 +669,29 @@ var GC = {
           }
         }
         else
-          for (var year = data.min; year <= data.max; year ++)
+          for (var year = 1994; year <= 2004; year ++)
           {
             gx.timedataB.push(0);
             gx.timedatar0B.push(0);
             gx.timedatarpB.push(0);
           }
+        var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
+        if (gx.urladd == undefined)
+          gx.urladd = new Array();
+        if (nodeidA == undefined)
+          gx.urladd[0] = "";
+        else
+          gx.urladd[0] = urltmp + "node=" + nodeidA.toString() + ".flat=0.time=" ;
+        if (nodeidB == undefined)
+          gx.urladd[1] = "";
+        else
+          gx.urladd[1] = urltmp + "node=" + nodeidB.toString() + ".flat=0.time=" ;
         var newLength = gx.xMarks.length;
         var _duration = 1000;
         //render sum box
-        oldData = oldData.slice(0,gx.timedata.length);
+        oldData = oldData.concat(oldDataB);
         var circle = gx.timesvg.selectAll("circle").data(oldData);
         circle.exit().remove();
-
-        gx.timesvg.selectAll("circle")
-        .data(gx.timedata)
-        .enter()
-        .append("a")
-        .attr("xlink:href", "http://www.google.com")
-        .append("circle")
-        .attr("cx", function(d,i){
-          if(i>=oldData.length) return tw-padding; else return gx.xScale(i);
-        })  
-        .attr("cy",function(d,i){
-          if(i>=oldData.length) return th-padding; else return gx.yScale(d);
-        })
-        .style("fill","#000"); 
-
-        gx.timesvg.selectAll("circle")
-        .attr("r",5)
-        .attr("fill","#000");
 
         gx.xScale.domain([0,newLength - 1]);   
         gx.xAxis.scale(gx.xScale).ticks(cnt);
@@ -693,123 +702,119 @@ var GC = {
         gx.path.transition().duration(_duration).attr("d",gx.line(gx.timedata));
         gx.pathB.transition().duration(_duration).attr("d",gx.line(gx.timedataB));
         //重绘4圆点 
-        var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + nodeidA.toString() + ".flat=0.time=" ;
-        gx.timesvg.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
-        gx.timesvg.selectAll("circle")   
-        .transition()
-        .duration(_duration)
-        .attr("cx", function(d,i) {       
-            return gx.xScale(i);
-        })  
-        .attr("cy", function(d) {
-            return gx.yScale(d); 
-        })
-        .style("fill","#000"); 
-        /*
+
         gx.timesvg.selectAll("circle")
-        .data(gx.timedata)
+        .data(gx.timedata.concat(gx.timedataB))
         .enter()
         .append("a")
         .attr("xlink:href", "http://www.google.com")
         .append("circle")
         .attr("cx", function(d,i){
-          if(i>=oldData.length) return tw-padding; else return gx.xScale(i);
+          if(i>=oldData.length) return tw-padding; return gx.xScale(i % gx.timedata.length);
         })  
         .attr("cy",function(d,i){
-          if(i>=oldData.length) return th-padding; else return gx.yScale(d);
+          if(i>=oldData.length) return th-padding; return gx.yScale(d);
         })
+        .style("fill","#000"); 
 
+        gx.timesvg.selectAll("circle")
+        .attr("r",5)
         gx.timesvg.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
+        .attr("xlink:href", function(d,i) {
+          return gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html';
+        });      
         gx.timesvg.selectAll("circle")   
         .transition()
         .duration(_duration)
         .attr("cx", function(d,i) {       
-            return gx.xScale(i);
+            return gx.xScale(i % gx.timedata.length);
         })  
         .attr("cy", function(d) {
-            return gx.yScale(d); 
-        })
-        .style("fill","#000"); 
-        */
+            return gx.yScale(d);  
+        });
+
         //render r0 box
-        oldDatar0 = oldDatar0.slice(0,gx.timedata.length);
+        oldDatar0 = oldDatar0.concat(oldDatar0B);
         var circler0 = gx.timesvgr0.selectAll("circle").data(oldDatar0);
         circler0.exit().remove();
-        gx.timesvgr0.selectAll("circle")
-        .data(gx.timedatar0)
-        .enter()
-        .append("a")
-        .attr("xlink:href", "http://www.google.com")
-        .append("circle")
-        .attr("cx", function(d,i){
-          if(i>=oldData.length) return tw-padding; else return gx.xScale(i);
-        })  
-        .attr("cy",function(d,i){
-          if(i>=oldData.length) return th-padding; else return gx.yScale(d);
-        })  
-        gx.timesvgr0.selectAll("circle")
-        .attr("r",5)
-        .attr("fill","#09F");
         gx.xScaler0.domain([0,newLength - 1]);   
         gx.xAxisr0.scale(gx.xScaler0).ticks(cnt);
         gx.xBarr0.transition().duration(_duration).call(gx.xAxisr0);
         gx.xBarr0.selectAll("text").text(function(d){return gx.xMarks[d];});
-        gx.yScaler0.domain([0,d3.max(gx.timedatar0)]);       
+        gx.yScaler0.domain([0,Math.max(d3.max(gx.timedatar0B),d3.max(gx.timedatar0))]);       
         gx.yBarr0.transition().duration(_duration).call(gx.yAxisr0);
         gx.pathr0.transition().duration(_duration).attr("d",gx.liner0(gx.timedatar0));
+        gx.pathr0B.transition().duration(_duration).attr("d",gx.liner0(gx.timedatar0B));
         //重绘4圆点 
-        var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + nodeidA.toString() + ".flat=0.time=" ;
+        gx.timesvgr0.selectAll("circle")
+        .data(gx.timedatar0.concat(gx.timedatar0B))
+        .enter()
+        .append("a")
+        .attr("xlink:href", "http://www.google.com")
+        .append("circle")
+        .attr("cx", function(d,i){
+          if(i>=oldDatar0.length) return tw-padding; return gx.xScaler0(i % gx.timedata.length);
+        })  
+        .attr("cy",function(d,i){
+          if(i>=oldDatar0.length) return th-padding; return gx.yScaler0(d);
+        })
+        .style("fill","#000"); 
+
+        gx.timesvgr0.selectAll("circle")
+        .attr("r",5)
+
         gx.timesvgr0.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
+        .attr("xlink:href", function(d,i) {
+          return gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html';
+        });      
+        
         gx.timesvgr0.selectAll("circle")   
         .transition()
         .duration(_duration)
         .attr("cx", function(d,i) {       
-            return gx.xScaler0(i);
+            return gx.xScaler0(i % gx.timedata.length);
         })  
         .attr("cy", function(d) {
             return gx.yScaler0(d);  
         });
         //rate to parent
-        oldDatarp = oldDatarp.slice(0,gx.timedata.length);
+        oldDatarp = oldDatar0.concat(oldDatarpB);
         var circlerp = gx.timesvgrp.selectAll("circle").data(oldDatarp);
         circlerp.exit().remove();
+        gx.xScalerp.domain([0,newLength - 1]);   
+        gx.xAxisrp.scale(gx.xScalerp).ticks(cnt);
+        gx.xBarrp.transition().duration(_duration).call(gx.xAxisrp);
+        gx.xBarrp.selectAll("text").text(function(d){return gx.xMarks[d];});
+        gx.yScalerp.domain([0,Math.max(d3.max(gx.timedatarpB),d3.max(gx.timedatarp))]);       
+        gx.yBarrp.transition().duration(_duration).call(gx.yAxisrp);
+        gx.pathrp.transition().duration(_duration).attr("d",gx.linerp(gx.timedatarp));
+        gx.pathrpB.transition().duration(_duration).attr("d",gx.linerp(gx.timedatarpB));
+        //重绘4圆点 
         gx.timesvgrp.selectAll("circle")
-        .data(gx.timedatarp)
+        .data(gx.timedatarp.concat(gx.timedatarpB))
         .enter()
         .append("a")
         .attr("xlink:href", "http://www.google.com")
         .append("circle")
         .attr("cx", function(d,i){
-          if(i>=oldData.length) return tw-padding; else return gx.xScalerp(i);
+          if(i>=oldData.length) return tw-padding; return gx.xScalerp(i % gx.timedata.length);
         })  
         .attr("cy",function(d,i){
-          if(i>=oldData.length) return th-padding; else return gx.yScalerp(d);
-        })  
+          if(i>=oldData.length) return th-padding; return gx.yScalerp(d);
+        })
+        .style("fill","#000"); 
+
         gx.timesvgrp.selectAll("circle")
         .attr("r",5)
-        .attr("fill","#09F");
-        gx.xScalerp.domain([0,newLength - 1]);   
-        gx.xAxisrp.scale(gx.xScalerp).ticks(cnt);
-        gx.xBarrp.transition().duration(_duration).call(gx.xAxisrp);
-        gx.xBarrp.selectAll("text").text(function(d){return gx.xMarks[d];});
-        gx.yScalerp.domain([0,d3.max(gx.timedatarp)]);       
-        gx.yBarrp.transition().duration(_duration).call(gx.yAxisrp);
-        gx.pathrp.transition().duration(_duration).attr("d",gx.linerp(gx.timedatarp));
-        //重绘4圆点 
-        var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + nodeidA.toString() + ".flat=0.time=" ;
         gx.timesvgrp.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
+        .attr("xlink:href", function(d,i) {
+          return gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html';
+        });      
         gx.timesvgrp.selectAll("circle")   
         .transition()
         .duration(_duration)
         .attr("cx", function(d,i) {       
-            return gx.xScalerp(i);
+            return gx.xScalerp(i % gx.timedata.length);
         })  
         .attr("cy", function(d) {
             return gx.yScalerp(d);  
