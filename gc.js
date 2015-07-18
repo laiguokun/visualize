@@ -1084,7 +1084,7 @@ var GC = {
         {
           var node = document.createElement("option");
           node.value = wordset[i];
-          if (i==0) node.selected = true;
+          if (i==0) Node.showWord(wordset[i]);
           var textnode = document.createTextNode(wordset[i]);
           node.appendChild(textnode);
           wsnode.appendChild(node);

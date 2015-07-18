@@ -11,7 +11,7 @@ var GC = {
   /* default message */
 
   /* Stores the name of the dataset */
-  datakey : "" , 
+  datakey : "csxml" , 
 
   /* The function that should be called first , load the database 
    * and renders the the root node i.e. node 0 
@@ -121,9 +121,77 @@ var GC = {
 
   /* Holds all the information of the current node being displayed */
 
-  NodeA : (function(){
-    var NodeA = new Object();
-    var NodeB = new Object();
+  Node : (function(){
+    var NodeA = null;
+    var NodeB = null;
+    var keyA = null;
+    var keyB = null;
+    var dataA = null;
+    var dataB = null;
+    Node.loadA = function(n){
+      GC.GetValueFromServer({type:"timeLine",node:n}, Node.on_load_timelineA);
+    }
+
+    Node.on_load_timelineA = function(s){
+      var dataset = (JSON.parse(s));
+      if (Node.dataA == undefined){
+        Node.dataA = new Object();
+      }
+      Node.dataA.normal = JSON.parse(dataset[0]);//normal
+      Node.dataA.r0 = JSON.parse(dataset[1]);//r0
+      Node.dataA.rp= JSON.parse(dataset[2]);//rp
+      Node.dataA.rt = JSON.parse(dataset[3]);//rt
+      Node.dataA.ws = JSON.parse(dataset[4]);//ws
+      Node.ws = Node.dataA.ws;
+      Node.graphics.render_timeLine(Node.dataA, Node.dataB, Node.keyA);
+    }    
+
+    Node.searchA = function(){
+      var s = document.getElementById("set-word-A").value;
+      Node.search_wordA(s);
+    }
+
+    Node.search_wordA = function(s){
+      GC.GetValueFromServer({type:"searchNode", node:s}, Node.search_nodeA)
+    }
+    Node.search_nodeA = function(s){
+      var data = JSON.parse(s);
+      var search_node = data.result;
+      Node.keyA = search_node;
+      Node.loadA(search_node);
+    }
+
+    Node.loadB = function(n){
+      GC.GetValueFromServer({type:"timeLine",node:n}, Node.on_load_timelineB);
+    }
+
+    Node.on_load_timelineB = function(s){
+      var dataset = (JSON.parse(s));
+      if (Node.dataB == undefined){
+        Node.dataB = new Object();
+      }
+      Node.dataB.normal = JSON.parse(dataset[0]);//normal
+      Node.dataB.r0 = JSON.parse(dataset[1]);//r0
+      Node.dataB.rp= JSON.parse(dataset[2]);//rp
+      Node.dataB.rt = JSON.parse(dataset[3]);//rt
+      Node.dataB.ws = JSON.parse(dataset[4]);//ws
+      Node.graphics.render_timeLine(Node.dataA, Node.dataB, Node.keyA, Node.keyB);
+    }    
+
+    Node.searchB = function(){
+      var s = document.getElementById("set-word-B").value;
+      Node.search_wordB(s);
+    }
+
+    Node.search_wordB = function(s){
+      GC.GetValueFromServer({type:"searchNode", node:s}, Node.search_nodeB)
+    }
+    Node.search_nodeB = function(s){
+      var data = JSON.parse(s);
+      var search_node = data.result;
+      Node.keyB = search_node;
+      Node.loadB(search_node);
+    }
 
     Node.graphics = (function(){
 
@@ -143,9 +211,15 @@ var GC = {
       gx.timedata = [];
       gx.timedatar0 = [];
       gx.timedatarp = [];
-      gx.timedataws = []
+      gx.timedataws = [];
+
+      gx.timedataB = [];
+      gx.timedatar0B = [];
+      gx.timedatarpB = [];
+      gx.timedatawsB = [];
+
       gx.xMarks = [];
-      gx.xMarksws = []
+      gx.xMarksws = [];
       gx.diameter = Math.max( x , 500 );
       gx.grow_rate = null;
       gx.format = d3.format(",d");
@@ -168,7 +242,7 @@ var GC = {
       gx.yBar = null;
       gx.line = null;
       gx.path = null;
-
+      gx.pathB = null;
       gx.timesvgr0 = null;
       gx.xScaler0 = null;
       gx.yScaler0 = null;
@@ -224,14 +298,14 @@ var GC = {
         .text("the number of paper vs year");
 
         gx.xScale = d3.scale.linear()
-          .domain([0,gx.timedata.length-1])
+          .domain([0,gx.xMarks.length-1])
           .range([padding,tw-padding]);
         gx.yScale = d3.scale.linear()
-          .domain([0,d3.max(gx.timedata)])
+          .domain([0,Math.max(d3.max(gx.timedata), d3.max(gx.timedataB))])
           .range([th-padding,padding]);
         gx.xAxis = d3.svg.axis()
           .scale(gx.xScale)  
-          .orient("bottom").ticks(gx.timedata.length);
+          .orient("bottom").ticks(gx.xMarks.length);
         
         //添加横坐标轴并通过编号获取对应的横轴标签
         gx.xBar=gx.timesvg.append("g")
@@ -263,9 +337,17 @@ var GC = {
           .style("fill","#F00")
           .style("fill","none")
           .style("stroke-width",1)
-          .style("stroke","#F00")
+          .style("stroke","red")
           .style("stroke-opacity",0.9);
-        
+
+        gx.pathB=gx.timesvg.append("path")
+          .attr("d",gx.line(gx.timedataB))
+          .style("fill","#00F")
+          .style("fill","none")
+          .style("stroke-width",1)
+          .style("stroke","blue")
+          .style("stroke-opacity",0.9);
+
         //添加系列的小圆点
         gx.timesvg.selectAll("circle")
         .data(gx.timedata)
@@ -279,6 +361,7 @@ var GC = {
         .attr("cy", function(d) {
             return gx.yScale(d);  
         })  
+        .style("fill", "#FFF")
         .attr("r",5);
 
         //rate to 0 box;
@@ -304,14 +387,14 @@ var GC = {
         .text("the rate to dataset of paper number vs years");
 
         gx.xScaler0 = d3.scale.linear()
-          .domain([0,gx.timedatar0.length-1])
+          .domain([0,gx.xMarks.length-1])
           .range([padding,tw-padding]);
         gx.yScaler0 = d3.scale.linear()
           .domain([0,d3.max(gx.timedatar0)])
           .range([th-padding,padding]);
         gx.xAxisr0 = d3.svg.axis()
           .scale(gx.xScaler0)  
-          .orient("bottom").ticks(gx.timedatar0.length); 
+          .orient("bottom").ticks(gx.xMarks.length); 
         //添加横坐标轴并通过编号获取对应的横轴标签
         gx.xBarr0=gx.timesvgr0.append("g")
           .attr("class", "axis")
@@ -380,14 +463,14 @@ var GC = {
         .style("font-size", "12px") 
         .text("the rate to parent of paper number vs years");
         gx.xScalerp = d3.scale.linear()
-          .domain([0,gx.timedatarp.length-1])
+          .domain([0,gx.xMarks.length-1])
           .range([padding,tw-padding]);
         gx.yScalerp = d3.scale.linear()
           .domain([0,d3.max(gx.timedatarp)])
           .range([th-padding,padding]);
         gx.xAxisrp = d3.svg.axis()
           .scale(gx.xScalerp)  
-          .orient("bottom").ticks(gx.timedatarp.length); 
+          .orient("bottom").ticks(gx.xMarks.length); 
         //添加横坐标轴并通过编号获取对应的横轴标签
         gx.xBarrp=gx.timesvgrp.append("g")
           .attr("class", "axis")
@@ -455,14 +538,14 @@ var GC = {
         .style("font-size", "12px") 
         .text("the position of word in current topic vs years");
         gx.xScalews = d3.scale.linear()
-          .domain([0,gx.timedataws.length-1])
+          .domain([0,gx.xMarksws.length-1])
           .range([padding,tw-padding]);
         gx.yScalews = d3.scale.linear()
           .domain([0,d3.max(gx.timedataws)])
           .range([th-padding,padding]);
         gx.xAxisws = d3.svg.axis()
           .scale(gx.xScalews)  
-          .orient("bottom").ticks(gx.timedataws.length); 
+          .orient("bottom").ticks(gx.xMarksws.length); 
         //添加横坐标轴并通过编号获取对应的横轴标签
         gx.xBarws=gx.timesvgws.append("g")
           .attr("class", "axis")
@@ -515,7 +598,7 @@ var GC = {
       /* The 'core' non-leaf node rendering function using d3js */
 
 
-      gx.render_timeLine = function(data, datar0, datarp, datart, dataws, nodeid)
+      gx.render_timeLine = function(DATA_A, DATA_B, nodeidA, nodeidB)
       {
         var padding = 20;
         var th = 200;
@@ -523,17 +606,14 @@ var GC = {
         var oldData = gx.timedata;
         var oldDatar0 = gx.timedatar0;
         var oldDatarp = gx.timedatarp;
-        gx.timedata = [];
-        gx.timedatar0 = [];
-        gx.timedatarp = [];
+        gx.timedata = [];gx.timedatar0 = [];gx.timedatarp = [];
+        gx.timedataB = [];gx.timedatar0B = [];gx.timedatarpB = [];
         gx.xMarks = [];
-        var cnt = 0;
-        for (var year = data.min; year <= data.max; year ++)
+        var dataws = [];
+        var cnt = 0;var l1 = 0;var l2 = 0;
+        for (var year = 1994; year <= 2004; year ++)
         {
-          gx.timedata.push(parseInt(data[year]));
-          gx.timedatar0.push(parseFloat(datar0[year]));
-          gx.timedatarp.push(parseFloat(datarp[year]));
-          if ((year-data.min) % 2 ==0)
+          if ((year-1994) % 2 ==0)
           {
             gx.xMarks.push(year);
             cnt += 1;
@@ -541,12 +621,51 @@ var GC = {
           else
             gx.xMarks.push(" ");
         }
-        var newLength = gx.timedata.length;
+        if (DATA_A != undefined)
+        {
+          var data = DATA_A.normal;
+          var datar0 = DATA_A.r0;
+          var datarp = DATA_A.rp;
+          for (var year = data.min; year <= data.max; year ++)
+          {
+            gx.timedata.push(parseInt(data[year]));
+            gx.timedatar0.push(parseFloat(datar0[year]));
+            gx.timedatarp.push(parseFloat(datarp[year]));
+          }
+        }
+        else
+          for (var year = data.min; year <= data.max; year ++)
+          {
+            gx.timedata.push(0);
+            gx.timedatar0.push(0);
+            gx.timedatarp.push(0);
+          }
+        if (DATA_B != undefined)
+        {
+          var dataB = DATA_B.normal;
+          var datar0B = DATA_B.r0;
+          var datarpB = DATA_B.rp;
+          for (var year = dataB.min; year <= dataB.max; year ++)
+          {
+            gx.timedataB.push(parseInt(dataB[year]));
+            gx.timedatar0B.push(parseFloat(datar0B[year]));
+            gx.timedatarpB.push(parseFloat(datarpB[year]));
+          }
+        }
+        else
+          for (var year = data.min; year <= data.max; year ++)
+          {
+            gx.timedataB.push(0);
+            gx.timedatar0B.push(0);
+            gx.timedatarpB.push(0);
+          }
+        var newLength = gx.xMarks.length;
         var _duration = 1000;
         //render sum box
         oldData = oldData.slice(0,gx.timedata.length);
         var circle = gx.timesvg.selectAll("circle").data(oldData);
         circle.exit().remove();
+
         gx.timesvg.selectAll("circle")
         .data(gx.timedata)
         .enter()
@@ -558,20 +677,24 @@ var GC = {
         })  
         .attr("cy",function(d,i){
           if(i>=oldData.length) return th-padding; else return gx.yScale(d);
-        })  
+        })
+        .style("fill","#000"); 
+
         gx.timesvg.selectAll("circle")
         .attr("r",5)
-        .attr("fill","#09F");
+        .attr("fill","#000");
+
         gx.xScale.domain([0,newLength - 1]);   
         gx.xAxis.scale(gx.xScale).ticks(cnt);
         gx.xBar.transition().duration(_duration).call(gx.xAxis);
         gx.xBar.selectAll("text").text(function(d){return gx.xMarks[d];});
-        gx.yScale.domain([0,d3.max(gx.timedata)]);       
+        gx.yScale.domain([0,Math.max(d3.max(gx.timedata),d3.max(gx.timedataB))]);       
         gx.yBar.transition().duration(_duration).call(gx.yAxis);
         gx.path.transition().duration(_duration).attr("d",gx.line(gx.timedata));
+        gx.pathB.transition().duration(_duration).attr("d",gx.line(gx.timedataB));
         //重绘4圆点 
         var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
+        urltmp += "node=" + nodeidA.toString() + ".flat=0.time=" ;
         gx.timesvg.selectAll("a")
         .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
         gx.timesvg.selectAll("circle")   
@@ -581,8 +704,36 @@ var GC = {
             return gx.xScale(i);
         })  
         .attr("cy", function(d) {
-            return gx.yScale(d);  
-        }); 
+            return gx.yScale(d); 
+        })
+        .style("fill","#000"); 
+        /*
+        gx.timesvg.selectAll("circle")
+        .data(gx.timedata)
+        .enter()
+        .append("a")
+        .attr("xlink:href", "http://www.google.com")
+        .append("circle")
+        .attr("cx", function(d,i){
+          if(i>=oldData.length) return tw-padding; else return gx.xScale(i);
+        })  
+        .attr("cy",function(d,i){
+          if(i>=oldData.length) return th-padding; else return gx.yScale(d);
+        })
+
+        gx.timesvg.selectAll("a")
+        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
+        gx.timesvg.selectAll("circle")   
+        .transition()
+        .duration(_duration)
+        .attr("cx", function(d,i) {       
+            return gx.xScale(i);
+        })  
+        .attr("cy", function(d) {
+            return gx.yScale(d); 
+        })
+        .style("fill","#000"); 
+        */
         //render r0 box
         oldDatar0 = oldDatar0.slice(0,gx.timedata.length);
         var circler0 = gx.timesvgr0.selectAll("circle").data(oldDatar0);
@@ -611,7 +762,7 @@ var GC = {
         gx.pathr0.transition().duration(_duration).attr("d",gx.liner0(gx.timedatar0));
         //重绘4圆点 
         var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
+        urltmp += "node=" + nodeidA.toString() + ".flat=0.time=" ;
         gx.timesvgr0.selectAll("a")
         .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
         gx.timesvgr0.selectAll("circle")   
@@ -651,7 +802,7 @@ var GC = {
         gx.pathrp.transition().duration(_duration).attr("d",gx.linerp(gx.timedatarp));
         //重绘4圆点 
         var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
+        urltmp += "node=" + nodeidA.toString() + ".flat=0.time=" ;
         gx.timesvgrp.selectAll("a")
         .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
         gx.timesvgrp.selectAll("circle")   
@@ -663,29 +814,6 @@ var GC = {
         .attr("cy", function(d) {
             return gx.yScalerp(d);  
         });
-
-
-
-        //relate topic
-        var rtopic = document.getElementById("relate-topic-content");
-        while (rtopic.hasChildNodes()) {   
-          rtopic.removeChild(rtopic.firstChild);
-        }
-        if (datart.length != 0 && datart.length != undefined)
-        {
-          var textnode = document.createTextNode("relate topic: ")
-          rtopic.appendChild(textnode);
-        }
-        for (var i = 0; i < datart.length; i++)
-        {
-          var node = document.createElement("a");
-          var textnode = document.createTextNode("Topic" + datart[i].toString()+ " ");
-          node.appendChild(textnode);
-          node.href = "javascript:void(0)";
-          node.index = datart[i].toString();
-          node.onclick = function(){Node.load(this.index)};
-          rtopic.appendChild(node);
-        }
 
         var wordset = Object.keys(dataws);
         var wsnode = document.getElementById("wordselect");
@@ -758,7 +886,7 @@ var GC = {
         gx.pathws.transition().duration(_duration).attr("d",gx.linews(gx.timedataws));
         //重绘4圆点 
         var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
+        urltmp += "node=" + nodeidA.toString() + ".flat=0.time=" ;
         gx.timesvgws.selectAll("a")
         .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
         gx.timesvgws.selectAll("circle")   

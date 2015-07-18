@@ -20,11 +20,43 @@ import random;
 # rcv1_hierarchy , rcv1_content_3453 , rcv1_children_3443
 
 # Get timeLine info;
-fin = open("search_candid.dat","r");
-lexicon = {}
-for line in fin:
-	words = line[0:-1].split('\t');
-	lexicon[words[0]] = int(words[1]);
+def searchNode(query, dataset):
+	words = query.split();
+	print(words);
+	candid = {}
+	max_hit_time = 0;
+	topic = 0;
+	for topic in dataset.keys():
+		hit_time = 0;
+		tmp = 0;
+		for word in words:
+			if (topic != '0' and (word in dataset[topic]["desc"])):
+				hit_time += 1;
+				tmp += 1.0/(dataset[topic]["desc"].index(word) + 1);
+		if (dataset[topic]["isleaf"] == 1):
+			tmp -= 1;
+		if (hit_time == max_hit_time):
+			candid[topic] = tmp;
+		if (hit_time > max_hit_time):
+			max_hit_time = hit_time;
+			candid = {};
+			candid[topic] = tmp;
+	res = sorted(candid.items(), key=lambda x:x[1], reverse = True);
+	if (len(res)>0):
+		candid = {}
+		min_value = res[0][1];
+		for item in res:
+			if (item[1] == min_value):
+				candid[item[0]] = dataset[item[0]]["depth"];
+		res = sorted(candid.items(), key=lambda x:x[1]);
+		topic = res[0][0];
+	return topic;
+
+#fin = open("search_candid.dat","r");
+#lexicon = {}
+#for line in fin:
+#	words = line[0:-1].split('\t');
+#	lexicon[words[0]] = int(words[1]);
 
 fin = open("relate_word.dat", "r");
 relate_word = {}
@@ -55,7 +87,10 @@ rpdb = leveldb.LevelDB( cfg.get('main','timeLine-ratetop_leveldb_loc'));
 wsdb = leveldb.LevelDB( cfg.get('main','wordSeries_leveldb_loc'));
 descdb = leveldb.LevelDB(cfg.get('main', 'desc_leveldb_loc'));
 fcontent = {};
+dataset = {}
 
+for k in descdb.RangeIter():
+	dataset[k[0]] = json.loads(k[1]);
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 	def gzipencode ( self , content ):
@@ -94,6 +129,28 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			return;
 
 		# the request-type must only be of form http://[..]/GC?GC_REQ=..&GC_DATASET=..&[GC_NODE=..]"
+		if up[2] == '/compare.html' or up[2] == '/css/compare.css' or up[2] == '/js/compare.js' or up[2] == '/js/d3.v3.min.js':
+			self.send_response(200, 'OK' );
+			if up[2] == '/css/compare.css' :
+				self.send_header('Content-type', 'text/css');
+			else :
+				if up[2] == '/compare.html' :
+					self.send_header('Content-type', 'text/html');
+				else:
+					self.send_header('Content-type', 'text/javascript');
+			self.end_headers();
+			fname = './html' + up[2];
+			print " serving " + fname;
+			s = "";
+			if fname not in fcontent:
+				f = open(fname,'r');
+				s = f.read();
+				f.close();
+			else:
+				s = fcontent[fname];				
+			self.wfile.write(bytes(s));
+			return;
+
 		if up[2] != '/GC':
 			self.serve_empty ( " Cannot find the page " + up[3] );
 			return;
@@ -144,6 +201,8 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 					tmp[node] = valuenode;
 			try:
 				valuedesc = descdb.Get(str(qs['GC_NODE'][0]));
+				if (qs['GC_NODE'][0] == '0'):
+					valuedesc = json.dumps(desc);
 			except:
 				valuedesc = json.dumps(desc);
 			data[1] = json.dumps(tmp);
@@ -196,10 +255,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			self.wfile.write(bytes(json.dumps(data)));
 			self.wfile.flush();
 		if req == 'searchNode':
-			if (not qs['GC_NODE'][0] in lexicon):
-				node = 0;
-			else:
-				node = lexicon[qs['GC_NODE'][0]];
+			node = searchNode(qs['GC_NODE'][0], dataset);
 			relate = {}
 			if (qs['GC_NODE'][0] in relate_word):
 				relate = relate_word[qs['GC_NODE'][0]];
