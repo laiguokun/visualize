@@ -97,6 +97,8 @@ var GC = {
       req += "&GC_REQ=timeLine&GC_NODE=" + value.node;
     else if ( value.type == "searchNode")
       req += "&GC_REQ=searchNode&GC_NODE=" + value.node;
+    else if ( value.type == 'buildsubtree')
+      req += "&GC_REQ=buildsubtree&GC_NODE=" + value.node;
     return req;
   } , 
 
@@ -159,6 +161,7 @@ var GC = {
       var search_node = data.result;
       Node.keyA = search_node;
       Node.loadA(search_node);
+      Node.update_tree();
     }
 
     Node.loadB = function(n){
@@ -191,6 +194,19 @@ var GC = {
       var search_node = data.result;
       Node.keyB = search_node;
       Node.loadB(search_node);
+      Node.update_tree();
+    }
+
+    Node.update_tree = function()
+    {
+      if (Node.keyA != undefined && Node.keyB != undefined)
+        GC.GetValueFromServer({type:"buildsubtree", node:Node.keyA + "+" + Node.keyB}, Node.getsubtree)
+    }
+
+    Node.getsubtree = function(s)
+    {
+      Node.tree = JSON.parse(s);
+      Node.graphics.render_tree(Node.tree);
     }
 
     Node.graphics = (function(){
@@ -200,10 +216,6 @@ var GC = {
       /* Setup the d3.js parameters and data */
 
       gx.d3data = null;
-
-      var w = document.documentElement.clientWidth*90/100;
-      var h = document.documentElement.clientHeight;
-      var x = Math.min ( w*60.0/100 , 95.0/100*h );
       var tw = 400;
       var th = 200;
       var padding = 50;
@@ -220,7 +232,6 @@ var GC = {
 
       gx.xMarks = [];
       gx.xMarksws = [];
-      gx.diameter = Math.max( x , 500 );
       gx.grow_rate = null;
       gx.format = d3.format(",d");
 
@@ -272,12 +283,41 @@ var GC = {
       gx.linews = null;
       gx.pathws = null;
 
+      gx.treesvg = null;
+      gx.tree = null;
+      gx.diagonal = null;
+      gx.treeData = null;
+      var wmargin = 20;
+      var hmargin = 70;
+      gx.root = null;
+      gx.nodes = null;
+      gx.node = null;
+      gx.nodeEnter = null;
+      gx.nodeUpdate = null;
+      gx.link = null;
+      gx.cnt = null;
+
       /* Add a svg element to the left-page. Well, you can put this in the html
        * as well. Add 'filters' to the svg object. Currently the only filter is
        * the 'shadow' filter which appears as a 'hover' on the circles.
        */
 
       (function setup_graphics(){
+        //initialize the tree
+        var w = document.documentElement.clientWidth*0.9*0.6;
+        var h = document.documentElement.clientHeight*0.9;
+        gx.tree = d3.layout.tree()
+        .size([w-2*wmargin, h-2*hmargin]);
+
+        gx.diagonal = d3.svg.diagonal()
+          .projection(function(d) { return [d.x, d.y]; });
+
+        gx.treesvg = d3.select("#graph-part").append("svg")
+        .attr("width", w)
+        .attr("height", h)
+        .append("g")
+        .attr("transform", "translate(" + wmargin + "," + hmargin + ")");
+
         gx.timesvg = d3.select("#wordbox")
         .append("svg")
         .attr("width",tw)
@@ -904,6 +944,47 @@ var GC = {
             return gx.yScalews(d);  
         }); 
       }   
+      gx.render_tree = function(root)
+      {
+        var w = document.documentElement.clientWidth*0.95*0.6;
+        var h = document.documentElement.clientHeight*0.9;
+        root.x0 = w/2;
+        root.y0 = 0;
+        var duration = 750;
+        gx.cnt = 0;
+        gx.nodes = gx.tree.nodes(root).reverse();
+        gx.links = gx.tree.links(gx.nodes);
+        gx.node = gx.treesvg.selectAll("g.node")
+                  .data(gx.nodes, function(d){return d.id || (d.id = ++gx.cnt);});
+        gx.nodeEnter = gx.node.enter().append("g")
+                      .attr("class","node")
+                      .attr("transform", function(d) {return "translate(" + root.x0 + "," + root.y0 + ")";});
+        gx.nodeEnter.append("circle")
+        .attr("r", 10)
+        .style("fill", "#fff");
+        gx.nodeEnter.append("text")
+        .attr("y", function(d){return d.children ? -20:20})
+        .attr("dy",".35em")
+        .attr("text-anchor", function(d){return "middle"})
+        .text(function(d){return d.desc[0]})
+        .style("fill-opacity",1e-6);
+        gx.nodeUpdate = gx.node.transition()
+                        .duration(duration)
+                        .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")";});
+        gx.nodeUpdate.select("text")
+        .style("fill-opacity", 1);
+        gx.link = gx.treesvg.selectAll("path.link")
+        .data(gx.links, function(d) { return d.target.id;});
+        gx.link.enter().insert("path", "g")
+        .attr("class", "link")
+        .attr("d", function(d){
+          var o = {x: root.x0, y: root.y0};
+          return gx.diagonal({source: o, target: o});
+        });
+        gx.link.transition()
+        .duration(duration)
+        .attr("d", gx.diagonal);
+      }
       /* End of graphics object */
       return gx;
     }());

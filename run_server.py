@@ -51,12 +51,67 @@ def searchNode(query, dataset):
 		res = sorted(candid.items(), key=lambda x:x[1]);
 		topic = res[0][0];
 	return topic;
+hierarchy = {}
 
-#fin = open("search_candid.dat","r");
-#lexicon = {}
-#for line in fin:
-#	words = line[0:-1].split('\t');
-#	lexicon[words[0]] = int(words[1]);
+def build_hierarchy(dataset, node):
+	if (node == "0"):
+		hierarchy[node] = {}
+	hierarchy[node]["children"] = [];
+	for son in dataset[node]["children"]:
+		hierarchy[str(node)]["children"].append(str(son));
+		hierarchy[str(son)] = {};
+		hierarchy[str(son)]["parent"] = str(node);
+		build_hierarchy(dataset, str(son));
+
+def subtree_AandB(nodeA, nodeB):
+	result_tree = {};
+	depthA = dataset[nodeA]["depth"];
+	depthB = dataset[nodeB]["depth"];
+	pathA = [];pathB = [];
+	pathA.append(nodeA);pathB.append(nodeB);
+	while (depthA > depthB):
+		pathA.append(hierarchy[pathA[len(pathA) - 1]]["parent"]);
+		depthA -= 1;
+	while (depthB > depthA):
+		pathB.append(hierarchy[pathB[len(pathB) - 1]]["parent"]);
+		depthB -= 1;
+	while (pathA[len(pathA) - 1] != pathB[len(pathB) - 1]):
+		pathA.append(hierarchy[pathA[len(pathA) - 1]]["parent"]);
+		pathB.append(hierarchy[pathB[len(pathB) - 1]]["parent"]);
+	result_tree["root"] = pathA[len(pathA) - 1];
+	for i in range(len(pathA) - 1, -1, -1):
+		if (not pathA[i] in result_tree):
+			result_tree[pathA[i]] = {}
+		if (not "children" in result_tree[pathA[i]].keys()):
+			result_tree[pathA[i]]["children"] = [];
+		if (i != 0):
+			result_tree[pathA[i]]["children"].append(pathA[i-1]);
+	for i in range(len(pathB) - 1, -1, -1):
+		if (not pathB[i] in result_tree):
+			result_tree[pathB[i]] = {}
+		if (not "children" in result_tree[pathB[i]].keys()):
+			result_tree[pathB[i]]["children"] = [];
+		if (i != 0):
+			result_tree[pathB[i]]["children"].append(pathB[i-1]);	
+	return result_tree;
+
+def buildtree(tree, node):
+	tmp = {};
+	if (not "desc" in dataset[node]):
+		tmp["desc"] = ["root"];
+	else:
+		tmp["desc"] = dataset[node]["desc"];
+	if (len(tree[node]["children"]) != 0):
+		tmp["children"] = [];
+		for son in tree[node]["children"]:
+			tmp["children"].append(buildtree(tree, son));
+			tmp["children"][len(tmp["children"]) - 1]["parent"] = node;
+	return tmp;
+
+def convert_tree(tree):
+	result = buildtree(tree, tree["root"]);
+	result["parent"] = "null";
+	return result;
 
 fin = open("relate_word.dat", "r");
 relate_word = {}
@@ -91,6 +146,12 @@ dataset = {}
 
 for k in descdb.RangeIter():
 	dataset[k[0]] = json.loads(k[1]);
+
+root = "0";
+hierarchy["root"] = 0;
+build_hierarchy(dataset,root);
+#result = subtree_AandB("0", "0");
+#print(result);
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 	def gzipencode ( self , content ):
@@ -267,7 +328,19 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			data["relate"] = relate;
 			self.wfile.write(bytes(json.dumps(data)));
 			self.wfile.flush();
-		
+		if req == 'buildsubtree':
+			print(qs);
+			nodeA = qs['GC_NODE'][0].split(' ')[0];
+			nodeB = qs['GC_NODE'][0].split(' ')[1];
+			resultree = subtree_AandB(nodeA, nodeB);
+#			print(resultree);
+			result = convert_tree(resultree);
+#			print(result);
+			self.send_response(200, 'OK');
+			self.send_header('Content-tpye', 'application/json');
+			self.end_headers();
+			self.wfile.write(bytes(json.dumps(result)));
+			self.wfile.flush();
 
 	# Serves the value of the key
 	def serve_key ( self , L , key ):
