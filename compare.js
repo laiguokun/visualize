@@ -952,6 +952,7 @@ var GC = {
         root.y0 = 0;
         var duration = 750;
         gx.cnt = 0;
+        gx.treesvg.selectAll("*").remove();
         gx.nodes = gx.tree.nodes(root).reverse();
         gx.links = gx.tree.links(gx.nodes);
         gx.node = gx.treesvg.selectAll("g.node")
@@ -962,6 +963,8 @@ var GC = {
         gx.nodeEnter.append("circle")
         .attr("r", 10)
         .style("fill", "#fff");
+        gx.nodeEnter
+        .append("title").text(function(d){ return d.desc.join(", ")});
         gx.nodeEnter.append("text")
         .attr("y", function(d){return d.children ? -20:20})
         .attr("dy",".35em")
