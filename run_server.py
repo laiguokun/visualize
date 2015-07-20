@@ -95,8 +95,38 @@ def subtree_AandB(nodeA, nodeB):
 			result_tree[pathB[i]]["children"].append(pathB[i-1]);	
 	return result_tree;
 
-def buildtree(tree, node):
+def subtree_set(L):
+	result_tree = {};
+	node = L[0];
+	for i in range(1,len(L)):
+		x = L[i];
+		tmp = subtree_AandB(node, x);
+		node = tmp["root"];
+		for topic in tmp.keys():
+			if (topic != "root"):
+				if (not topic in result_tree):
+					result_tree[topic] = {};
+					result_tree[topic]["children"] = [];
+				for son in tmp[topic]["children"]:
+					if (not son in result_tree[topic]["children"]):
+						result_tree[topic]["children"].append(son);
+	result_tree["root"] = node;
+	return result_tree;
+
+def buildtree(tree, node, L1, L2, mark):
 	tmp = {};
+	if (node in mark):
+		tmp["mark"] = 1;
+	else:
+		tmp["mark"] = 0;
+#	print(L1);
+	if (node in L1):
+		tmp["set"] = 1;
+	else:
+		if (node in L2):
+			tmp["set"] = 2;
+		else:
+			tmp["set"] = 3;
 	if (not "desc" in dataset[node]):
 		tmp["desc"] = ["root"];
 	else:
@@ -104,12 +134,47 @@ def buildtree(tree, node):
 	if (len(tree[node]["children"]) != 0):
 		tmp["children"] = [];
 		for son in tree[node]["children"]:
-			tmp["children"].append(buildtree(tree, son));
+			tmp["children"].append(buildtree(tree, son, L1, L2, mark));
 			tmp["children"][len(tmp["children"]) - 1]["parent"] = node;
 	return tmp;
 
-def convert_tree(tree):
-	result = buildtree(tree, tree["root"]);
+def searchWord(query,dataset):
+	words = query.split();
+	candid = {}
+	max_hit_time = 1;
+	topic = 0;
+	for topic in dataset.keys():
+		hit_time = 0;
+		tmp = 0;
+		for word in words:
+			if (topic != '0' and (word in dataset[topic]["desc"])):
+				hit_time += 1;
+				tmp += 1.0/(dataset[topic]["desc"].index(word) + 1);
+		if (dataset[topic]["isleaf"] == 1):
+			tmp -= 1;
+		if (hit_time == max_hit_time):
+			candid[topic] = tmp;
+		if (hit_time > max_hit_time):
+			max_hit_time = hit_time;
+			candid = {};
+			candid[topic] = tmp;
+	res = sorted(candid.items(), key=lambda x:x[1], reverse = True);
+	out = [];
+	if (len(res)>0):
+		candid = {}
+		min_value = res[0][1];
+		for item in res:
+			if (item[1] == min_value):
+				candid[item[0]] = dataset[item[0]]["depth"];
+		res = sorted(candid.items(), key=lambda x:x[1]);
+		for i in range(min(5,len(res))):
+			out.append(res[i][0]);
+	if (len(out) == 0):
+		out.append("0");
+	return out;
+
+def convert_tree(tree, L1, L2, mark):
+	result = buildtree(tree, tree["root"], L1, L2, mark);
 	result["parent"] = "null";
 	return result;
 
@@ -152,6 +217,9 @@ hierarchy["root"] = 0;
 build_hierarchy(dataset,root);
 #result = subtree_AandB("0", "0");
 #print(result);
+
+#print(result);
+
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 	def gzipencode ( self , content ):
@@ -235,9 +303,9 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			return;
 
 		# NODE variable is required for request-types 'children'/'content'
-		if 'GC_NODE' not in qs:
-			self.serve_empty ( "NODE variable not found" );
-			return;
+#		if 'GC_NODE' not in qs:
+#			self.serve_empty ( "NODE variable not found" );
+#			return;
 
 		# Serve key-value request
 		if req == 'children':
@@ -333,8 +401,29 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			nodeA = qs['GC_NODE'][0].split(' ')[0];
 			nodeB = qs['GC_NODE'][0].split(' ')[1];
 			resultree = subtree_AandB(nodeA, nodeB);
-#			print(resultree);
+			mark = {};
 			result = convert_tree(resultree);
+			self.send_response(200, 'OK');
+			self.send_header('Content-tpye', 'application/json');
+			self.end_headers();
+			self.wfile.write(bytes(json.dumps(result)));
+			self.wfile.flush();
+		print req;
+		if req == 'buildsubtreeoftwoword':
+			wordA = qs['GC_NODEA'][0];
+			wordB = qs['GC_NODEB'][0];
+			L1 = searchWord(wordA, dataset);
+			L2 = searchWord(wordB, dataset);
+			LL = list(L1);
+			LL.extend(L2);
+			resultree = subtree_set(LL);
+			nodeA = searchNode(wordA,dataset);
+			nodeB = searchNode(wordB,dataset);
+			mark = subtree_AandB(nodeA, nodeB)
+			result = convert_tree(resultree, L1, L2, mark);
+			print(L1);
+			print(L2);
+			print(resultree);
 #			print(result);
 			self.send_response(200, 'OK');
 			self.send_header('Content-tpye', 'application/json');

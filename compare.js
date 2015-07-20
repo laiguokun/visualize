@@ -99,6 +99,8 @@ var GC = {
       req += "&GC_REQ=searchNode&GC_NODE=" + value.node;
     else if ( value.type == 'buildsubtree')
       req += "&GC_REQ=buildsubtree&GC_NODE=" + value.node;
+    else if ( value.type == 'buildsubtreeoftwoword')
+      req += "&GC_REQ=buildsubtreeoftwoword&GC_NODEA=" + value.nodeA +"&GC_NODEB=" +value.nodeB;
     return req;
   } , 
 
@@ -130,6 +132,8 @@ var GC = {
     var keyB = null;
     var dataA = null;
     var dataB = null;
+    var wordA = "null";
+    var wordB = "null";
     Node.loadA = function(n){
       GC.GetValueFromServer({type:"timeLine",node:n}, Node.on_load_timelineA);
     }
@@ -150,6 +154,7 @@ var GC = {
 
     Node.searchA = function(){
       var s = document.getElementById("set-word-A").value;
+      Node.wordA = s;
       Node.search_wordA(s);
     }
 
@@ -183,6 +188,7 @@ var GC = {
 
     Node.searchB = function(){
       var s = document.getElementById("set-word-B").value;
+      Node.wordB = s;
       Node.search_wordB(s);
     }
 
@@ -199,8 +205,9 @@ var GC = {
 
     Node.update_tree = function()
     {
-      if (Node.keyA != undefined && Node.keyB != undefined)
-        GC.GetValueFromServer({type:"buildsubtree", node:Node.keyA + "+" + Node.keyB}, Node.getsubtree)
+      if (Node.wordA == undefined) Node.wordA = "nonewordforthis";
+      if (Node.wordB == undefined) Node.wordB = "nonewordforthis";
+      GC.GetValueFromServer({type:"buildsubtreeoftwoword", nodeA:Node.wordA, nodeB:Node.wordB}, Node.getsubtree)
     }
 
     Node.getsubtree = function(s)
@@ -961,12 +968,22 @@ var GC = {
                       .attr("class","node")
                       .attr("transform", function(d) {return "translate(" + root.x0 + "," + root.y0 + ")";});
         gx.nodeEnter.append("circle")
-        .attr("r", 10)
-        .style("fill", "#fff");
+        .attr("r", function(d){
+          if (d.mark == 1) return 20;
+          else return 7;
+        })
+        .style("fill", function(d){
+          if (d.set == 1) return "blue";
+          if (d.set == 2) return "purple";
+          return "grey";
+
+        });
         gx.nodeEnter
         .append("title").text(function(d){ return d.desc.join(", ")});
         gx.nodeEnter.append("text")
-        .attr("y", function(d){return d.children ? -20:20})
+        .attr("y", function(d){ if (d.mark == 1) return d.children ? -40:40;
+          else
+            return d.children ? -20:20})
         .attr("dy",".35em")
         .attr("text-anchor", function(d){return "middle"})
         .text(function(d){return d.desc[0]})
