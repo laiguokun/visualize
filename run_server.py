@@ -127,6 +127,7 @@ def buildtree(tree, node, L1, L2, mark):
 			tmp["set"] = 2;
 		else:
 			tmp["set"] = 3;
+	tmp["nodeId"] = node;
 	if (not "desc" in dataset[node]):
 		tmp["desc"] = ["root"];
 	else:
@@ -166,9 +167,17 @@ def searchWord(query,dataset):
 		for item in res:
 			if (item[1] == min_value):
 				candid[item[0]] = dataset[item[0]]["depth"];
-		res = sorted(candid.items(), key=lambda x:x[1]);
-		for i in range(min(5,len(res))):
-			out.append(res[i][0]);
+			else:
+				res2 = sorted(candid.items(), key=lambda x:x[1]);
+				i = 0;
+				while (len(out) < 5 and i < len(res2)):
+					out.append(res2[i][0]);
+					i += 1;
+				if (len(out) == 5):
+					break;
+				candid = {};
+				min_value = item[1];
+				candid[item[0]] = dataset[item[0]]["depth"]
 	if (len(out) == 0):
 		out.append("0");
 	return out;
@@ -219,9 +228,15 @@ build_hierarchy(dataset,root);
 #print(result);
 
 #print(result);
+L1 = []
+L2 = []
+nodeA = "0";
+nodeB = "0";
+resultree = {};
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
-
+	def __init__(self, request, client_address, server):
+		SimpleHTTPServer.SimpleHTTPRequestHandler.__init__(self, request, client_address, server);
 	def gzipencode ( self , content ):
 		out = StringIO.StringIO();
 		f = gzip.GzipFile(fileobj=out, mode='w', compresslevel=5);
@@ -409,6 +424,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			self.wfile.write(bytes(json.dumps(result)));
 			self.wfile.flush();
 		print req;
+		global L1,L2,nodeA,nodeB,resultree;
 		if req == 'buildsubtreeoftwoword':
 			wordA = qs['GC_NODEA'][0];
 			wordB = qs['GC_NODEB'][0];
@@ -425,6 +441,23 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			print(L2);
 			print(resultree);
 #			print(result);
+			self.send_response(200, 'OK');
+			self.send_header('Content-tpye', 'application/json');
+			self.end_headers();
+			self.wfile.write(bytes(json.dumps(result)));
+			self.wfile.flush();
+		if req == 'changeTreeNode':
+			print(nodeA);
+			s = qs['GC_NODE'][0];
+			word = s[1:];
+			s = s[0:1];
+			if (s == "A"):
+				nodeA = word;
+			else:
+				nodeB = word;
+			mark = subtree_AandB(nodeA,nodeB);
+			result = convert_tree(resultree, L1, L2, mark);
+			print(mark);
 			self.send_response(200, 'OK');
 			self.send_header('Content-tpye', 'application/json');
 			self.end_headers();

@@ -101,6 +101,8 @@ var GC = {
       req += "&GC_REQ=buildsubtree&GC_NODE=" + value.node;
     else if ( value.type == 'buildsubtreeoftwoword')
       req += "&GC_REQ=buildsubtreeoftwoword&GC_NODEA=" + value.nodeA +"&GC_NODEB=" +value.nodeB;
+    else if ( value.type == 'changeTreeNode')
+      req += "&GC_REQ=changeTreeNode&GC_NODE=" + value.node;
     return req;
   } , 
 
@@ -216,6 +218,27 @@ var GC = {
       Node.graphics.render_tree(Node.tree);
     }
 
+    Node.treeclick = function(d)
+    {
+      if (d.set == 1)
+      {
+        Node.keyA = d.nodeId;
+        Node.loadA(Node.keyA);
+        GC.GetValueFromServer({type:"changeTreeNode", node:"A"+Node.keyA}, Node.changeTreeNode);
+      }
+      if (d.set == 2)
+      {
+        Node.keyB = d.nodeId;
+        Node.loadB(Node.keyB);
+        GC.GetValueFromServer({type:"changeTreeNode", node:"B"+Node.keyB}, Node.changeTreeNode);
+      }
+    }
+    Node.changeTreeNode = function(s)
+    {
+      Node.tree = JSON.parse(s);
+      Node.graphics.render_tree(Node.tree);
+    }
+
     Node.graphics = (function(){
 
       var gx = new Object();
@@ -303,6 +326,7 @@ var GC = {
       gx.nodeUpdate = null;
       gx.link = null;
       gx.cnt = null;
+      gx.root = null;
 
       /* Add a svg element to the left-page. Well, you can put this in the html
        * as well. Add 'filters' to the svg object. Currently the only filter is
@@ -953,6 +977,7 @@ var GC = {
       }   
       gx.render_tree = function(root)
       {
+        gx.root = root;
         var w = document.documentElement.clientWidth*0.95*0.6;
         var h = document.documentElement.clientHeight*0.9;
         root.x0 = w/2;
@@ -960,7 +985,7 @@ var GC = {
         var duration = 750;
         gx.cnt = 0;
         gx.treesvg.selectAll("*").remove();
-        gx.nodes = gx.tree.nodes(root).reverse();
+        gx.nodes = gx.tree.nodes(gx.root).reverse();
         gx.links = gx.tree.links(gx.nodes);
         gx.node = gx.treesvg.selectAll("g.node")
                   .data(gx.nodes, function(d){return d.id || (d.id = ++gx.cnt);});
@@ -977,7 +1002,8 @@ var GC = {
           if (d.set == 2) return "purple";
           return "grey";
 
-        });
+        })
+        .on("click", Node.treeclick);
         gx.nodeEnter
         .append("title").text(function(d){ return d.desc.join(", ")});
         gx.nodeEnter.append("text")
