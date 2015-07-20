@@ -437,9 +437,9 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			nodeB = searchNode(wordB,dataset);
 			mark = subtree_AandB(nodeA, nodeB)
 			result = convert_tree(resultree, L1, L2, mark);
-			print(L1);
-			print(L2);
-			print(resultree);
+#			print(L1);
+#			print(L2);
+#			print(resultree);
 #			print(result);
 			self.send_response(200, 'OK');
 			self.send_header('Content-tpye', 'application/json');
@@ -457,7 +457,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				nodeB = word;
 			mark = subtree_AandB(nodeA,nodeB);
 			result = convert_tree(resultree, L1, L2, mark);
-			print(mark);
+#			print(mark);
 			self.send_response(200, 'OK');
 			self.send_header('Content-tpye', 'application/json');
 			self.end_headers();

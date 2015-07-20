@@ -136,6 +136,10 @@ var GC = {
     var dataB = null;
     var wordA = "null";
     var wordB = "null";
+    Node.showWord = function(s)
+    {
+      Node.graphics.render_wordseries(JSON.parse(Node.dataA.ws[s]),JSON.parse(Node.dataB.ws[s]));
+    }
     Node.loadA = function(n){
       GC.GetValueFromServer({type:"timeLine",node:n}, Node.on_load_timelineA);
     }
@@ -312,6 +316,7 @@ var GC = {
       gx.yBarws = null;
       gx.linews = null;
       gx.pathws = null;
+      gx.pathwsB = null;
 
       gx.treesvg = null;
       gx.tree = null;
@@ -666,6 +671,14 @@ var GC = {
           .style("stroke-width",1)
           .style("stroke","#F00")
           .style("stroke-opacity",0.9);
+
+        gx.pathwsB=gx.timesvgws.append("path")
+          .attr("d",gx.linews(gx.timedatawsB))
+          .style("fill","#00F")
+          .style("fill","none")
+          .style("stroke-width",1)
+          .style("stroke","blue")
+          .style("stroke-opacity",0.9);
         //添加系列的小圆点
         gx.timesvgws.selectAll("circle")
         .data(gx.timedataws)
@@ -696,7 +709,6 @@ var GC = {
         gx.timedata = [];gx.timedatar0 = [];gx.timedatarp = [];
         gx.timedataB = [];gx.timedatar0B = [];gx.timedatarpB = [];
         gx.xMarks = [];
-        var dataws = [];
         var cnt = 0;var l1 = 0;var l2 = 0;
         for (var year = 1994; year <= 2004; year ++)
         {
@@ -849,7 +861,7 @@ var GC = {
             return gx.yScaler0(d);  
         });
         //rate to parent
-        oldDatarp = oldDatar0.concat(oldDatarpB);
+        oldDatarp = oldDatarp.concat(oldDatarpB);
         var circlerp = gx.timesvgrp.selectAll("circle").data(oldDatarp);
         circlerp.exit().remove();
         gx.xScalerp.domain([0,newLength - 1]);   
@@ -890,8 +902,18 @@ var GC = {
         .attr("cy", function(d) {
             return gx.yScalerp(d);  
         });
-
-        var wordset = Object.keys(dataws);
+        var datawsA = new Array();
+        var datawsB = new Array();
+        if (DATA_A != undefined) datawsA = Object.keys(DATA_A.ws);
+        if (DATA_B != undefined) datawsB = Object.keys(DATA_B.ws);
+        var wordset = new Array();
+        for (var i = 0; i < datawsA.length; i++)
+          for (var j = 0; j < datawsB.length; j++)
+            if (datawsA[i] == datawsB[j])
+            {
+              wordset.push(datawsA[i]);
+              break;
+            }
         var wsnode = document.getElementById("wordselect");
         while (wsnode.hasChildNodes())
         {
@@ -908,22 +930,29 @@ var GC = {
         }
       }
 
-      gx.render_wordseries = function (data)
+      gx.render_wordseries = function (dataA, dataB)
       {
         var padding = 20;
         var th = 200;
         var tw = 400;
         var oldData = gx.timedataws;
+        var oldDataB = gx.timedatawsB;
         gx.timedataws = [];
+        gx.timedatawsB = [];
         gx.xMarksws = []
         var cnt = 0;
         for (var year = 1994; year <= 2004; year ++)
         {
-          var tmp = parseInt(data[year]);
+          var tmp = parseInt(dataA[year]);
           if (tmp == 0)
             gx.timedataws.push(0);
           else
             gx.timedataws.push(1.0/tmp);
+          var tmp = parseInt(dataB[year]);
+          if (tmp == 0)
+            gx.timedatawsB.push(0);
+          else
+            gx.timedatawsB.push(1.0/tmp);
           if ((year-1994) % 2 ==0)
           {
             gx.xMarksws.push(year);
@@ -935,45 +964,48 @@ var GC = {
         var newLength = gx.timedataws.length;
         var _duration = 1000;
         //render sum box
-        oldData = oldData.slice(0,gx.timedataws.length);
+        oldData = oldData.concat(oldDataB);
         var circle = gx.timesvgws.selectAll("circle").data(oldData);
         circle.exit().remove();
+        gx.xScalews.domain([0,newLength - 1]);   
+        gx.xAxisws.scale(gx.xScalews).ticks(cnt);
+        gx.xBarws.transition().duration(_duration).call(gx.xAxisws);
+        gx.xBarws.selectAll("text").text(function(d){return gx.xMarksws[d];});
+        gx.yScalews.domain([0,Math.max(d3.max(gx.timedatawsB),d3.max(gx.timedataws))]);       
+        gx.yBarws.transition().duration(_duration).call(gx.yAxisws);
+        gx.pathws.transition().duration(_duration).attr("d",gx.linews(gx.timedataws));
+        gx.pathwsB.transition().duration(_duration).attr("d",gx.linews(gx.timedatawsB));
+        //重绘4圆点 
+
         gx.timesvgws.selectAll("circle")
-        .data(gx.timedataws)
+        .data(gx.timedataws.concat(gx.timedatawsB))
         .enter()
         .append("a")
         .attr("xlink:href", "http://www.google.com")
         .append("circle")
         .attr("cx", function(d,i){
-          if(i>=oldData.length) return tw-padding; else return gx.xScale(i);
+          if(i>=oldData.length) return tw-padding; return gx.xScalews(i % gx.timedata.length);
         })  
         .attr("cy",function(d,i){
-          if(i>=oldData.length) return th-padding; else return gx.yScale(d);
-        })  
+          if(i>=oldData.length) return th-padding; return gx.yScalews(d);
+        })
+        .style("fill","#000"); 
+
         gx.timesvgws.selectAll("circle")
         .attr("r",5)
-        .attr("fill","#09F");
-        gx.xScalews.domain([0,newLength - 1]);   
-        gx.xAxisws.scale(gx.xScalews).ticks(cnt);
-        gx.xBarws.transition().duration(_duration).call(gx.xAxisws);
-        gx.xBarws.selectAll("text").text(function(d){return gx.xMarksws[d];});
-        gx.yScalews.domain([0,d3.max(gx.timedataws)]);       
-        gx.yBarws.transition().duration(_duration).call(gx.yAxisws);
-        gx.pathws.transition().duration(_duration).attr("d",gx.linews(gx.timedataws));
-        //重绘4圆点 
-        var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + nodeidA.toString() + ".flat=0.time=" ;
         gx.timesvgws.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
+        .attr("xlink:href", function(d,i) {
+          return gx.urladd[Math.floor(i / gx.timedataws.length).toString()] + (1995+(i % gx.timedataws.length)).toString() + '.html';
+        });      
         gx.timesvgws.selectAll("circle")   
         .transition()
         .duration(_duration)
         .attr("cx", function(d,i) {       
-            return gx.xScalews(i);
+            return gx.xScalews(i % gx.timedataws.length);
         })  
         .attr("cy", function(d) {
             return gx.yScalews(d);  
-        }); 
+        });
       }   
       gx.render_tree = function(root)
       {
