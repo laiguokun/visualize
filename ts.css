@@ -1,0 +1,186 @@
+/* Circle stuff */
+circle {
+    stroke: rgb(0, 0,0);
+    stroke-width: 0px;
+}
+
+.child circle {
+    fill: rgb(230, 230, 230);
+    fill-opacity: 0.0;
+    stroke-opacity: 0.0;
+    stroke: rgb(0, 0,0);
+    stroke-width: .1px;
+}
+
+
+.child circle:hover{
+    fill: rgb(200, 200, 200);
+    stroke: rgb(0,0,0);
+    stroke-width: 2px;
+    cursor: pointer;
+}
+
+.leaf circle {
+    fill: rgb(230, 230, 230);
+    fill-opacity: 0.0;
+    stroke-opacity: 0.0;
+    stroke: rgb(0,0,0);
+    stroke-width: 1px;
+}
+
+.leaf circle:hover{
+    fill: rgb(220, 220, 220);
+    stroke: rgb(0,0,0);
+    stroke-width: 3px;
+    cursor: pointer;
+}
+
+.node {
+    cursor: pointer;
+}
+
+.node circle {
+    fill: #fff;
+    stroke: steelblue;
+    stroke-width: 3px;
+}
+
+.node text {
+    font: 12px sans-serif;
+}
+
+.link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 2px;
+}
+
+
+.root circle {
+    fill: #000000;
+    fill-opacity:0.0;
+    stroke: black;
+    stroke-width: .1px;
+}
+/* Main body */
+.body {
+    overflow: auto;
+    white-space: nowrap;
+}
+
+/* Default text */
+
+text {
+    font-family: 'Fauna One', serif;
+    font-size: 15px;
+    pointer-events: none;
+}
+
+/* Overlay for the leaf-content */
+#setboxA {
+    position: relative;
+    float:left;
+    width:50%;
+}
+#setboxB {
+    position: relative;
+    float:right;
+    width:50%;
+}
+/* Standard page with left,right */
+
+#page {
+    width:100%;
+    min-width:1000px;
+    margin:0px auto;
+}
+
+#left-page {
+    position:relative;
+    float:left;
+    width:60%;
+}
+
+#right-page {
+    position:relative;
+    float:right;
+    width:35%;
+    min-width:400px;
+}
+
+/* The sidebar wordbox */
+
+#right-page-top-box {
+    float:left;
+    margin:5px auto;
+}
+
+#right-page-down-box{
+    float:left;
+    margin:5px auto;
+}
+#wordbox {
+    position:relative;
+    float:left;
+    margin:5px auto;
+}
+
+.wordbox p {
+    font-family: 'Fauna One', serif;
+    font-size: 30px;
+    line-height:180%;
+}
+
+.wordbox li {
+    font-family: 'Fauna One', serif;
+    font-size: 20px;
+}
+
+#current-describe {
+    position:relative;
+    float:left;
+    margin:5px auto;
+}
+
+.current-describe p {
+    font-family: 'Fauna One', serif;
+    font-size: 12px;
+    line-height:180%;
+}
+
+.current-describe li {
+    font-family: 'Fauna One', serif;
+    font-size: 10px;
+}
+.text {
+    font-family: 'Fauna One', serif;
+    font-size: 10px;
+    pointer-events: none;
+}
+
+/* Specific to RCV1 */
+
+.headline {
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    font-size: 32px;
+    font-weight: bold;
+}
+
+.bydateline {
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    font-size: 20px;
+    font-weight: bold;
+    font-style: italic;
+}
+    .axis path,
+    .axis line {
+        fill: none;
+        stroke: black;
+        shape-rendering: crispEdges;
+    }
+
+    .axis text {
+        font-family: sans-serif;
+        font-size: 11px;
+    };
+

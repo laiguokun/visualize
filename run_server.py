@@ -187,7 +187,7 @@ def convert_tree(tree, L1, L2, mark):
 	result["parent"] = "null";
 	return result;
 
-def build_time_series(node,year,relateset):
+def build_time_series(node,year,relatedb):
 	result = {}
 	now_year = int(year);
 	result[year] = {};
@@ -198,7 +198,9 @@ def build_time_series(node,year,relateset):
 		next_year = now_year + 1;
 		candid = {}
 		for last_node in result[str(now_year)].keys():
-			for item in relateset[last_node][str(now_year)]["next"]:
+			value = relatedb.Get(last_node + "_" + str(now_year));
+			data = json.loads(value);
+			for item in data["next"]:
 				topic = item[0];
 				rank = item[1];
 				if (not topic in candid.keys()):
@@ -228,7 +230,9 @@ def build_time_series(node,year,relateset):
 		pre_year = now_year - 1;
 		candid = {}
 		for last_node in result[str(now_year)].keys():
-			for item in relateset[last_node][str(now_year)]["pre"]:
+			value = relatedb.Get(last_node + "_" + str(now_year));
+			data = json.loads(value);
+			for item in data["pre"]:
 				topic = item[0];
 				rank = item[1];
 				if (not topic in candid.keys()):
@@ -370,8 +374,8 @@ nodeA = "0";
 nodeB = "0";
 resultree = {};
 
-ts = build_time_series("11286", "2000",relateset);
-print(convert_time_series(ts, "2000"));
+#ts = build_time_series("11286", "2000",relatedb);
+#print(convert_time_series(ts, "2000"));
 
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
@@ -419,6 +423,28 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				self.send_header('Content-type', 'text/css');
 			else :
 				if up[2] == '/compare.html' :
+					self.send_header('Content-type', 'text/html');
+				else:
+					self.send_header('Content-type', 'text/javascript');
+			self.end_headers();
+			fname = './html' + up[2];
+			print " serving " + fname;
+			s = "";
+			if fname not in fcontent:
+				f = open(fname,'r');
+				s = f.read();
+				f.close();
+			else:
+				s = fcontent[fname];				
+			self.wfile.write(bytes(s));
+			return;
+
+		if up[2] == '/ts.html' or up[2] == '/css/ts.css' or up[2] == '/js/ts.js' or up[2] == '/js/d3.v3.min.js':
+			self.send_response(200, 'OK' );
+			if up[2] == '/css/ts.css' :
+				self.send_header('Content-type', 'text/css');
+			else :
+				if up[2] == '/ts.html' :
 					self.send_header('Content-type', 'text/html');
 				else:
 					self.send_header('Content-type', 'text/javascript');
