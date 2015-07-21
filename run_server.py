@@ -198,14 +198,16 @@ def build_time_series(node,year,relateset):
 		next_year = now_year + 1;
 		candid = {}
 		for last_node in result[str(now_year)].keys():
-			for topic in relateset[last_node][str(now_year)]["next"]:
-				if (not topic in candid):
+			for item in relateset[last_node][str(now_year)]["next"]:
+				topic = item[0];
+				rank = item[1];
+				if (not topic in candid.keys()):
 					candid[topic] = {}
-					candid[topic]["rank"] = relateset[last_node][str(now_year)]["next"][topic];
+					candid[topic]["rank"] = rank;
 					candid[topic]["parent"] = last_node;
 				else:
-					if (relateset[last_node][str(now_year)]["next"][topic] > candid[topic]["rank"]):
-						candid[topic]["rank"] = relateset[last_node][str(now_year)]["next"][topic];
+					if (rank > candid[topic]["rank"]):
+						candid[topic]["rank"] = rank;
 						candid[topic]["parent"] = last_node;
 
 		sort_list = [];
@@ -215,25 +217,27 @@ def build_time_series(node,year,relateset):
 		limit = 20;
 		if (str(now_year) == year):
 			limit = 5;
-		result[str(next_yesr)] = {}
+		result[str(next_year)] = {}
 		for i in range(limit):
-			result[str(next_year)][res[0]] = {};
-			result[str(next_year)][res[0]]["rank"] = res[1];
-			result[str(next_year)][res[0]]["parent"] = res[2];
+			result[str(next_year)][res[i][0]] = {};
+			result[str(next_year)][res[i][0]]["rank"] = res[i][1];
+			result[str(next_year)][res[i][0]]["parent"] = res[i][2];
 		now_year = next_year;
 	now_year = int(year);
 	while (now_year >=1995):
 		pre_year = now_year - 1;
 		candid = {}
 		for last_node in result[str(now_year)].keys():
-			for topic in relateset[last_node][str(now_year)]["pre"]:
-				if (not topic in candid):
+			for item in relateset[last_node][str(now_year)]["pre"]:
+				topic = item[0];
+				rank = item[1];
+				if (not topic in candid.keys()):
 					candid[topic] = {}
-					candid[topic]["rank"] = relateset[last_node][str(now_year)]["pre"][topic];
+					candid[topic]["rank"] = rank;
 					candid[topic]["parent"] = last_node;
 				else:
-					if (relateset[last_node][str(now_year)]["pre"][topic] > candid[topic]["rank"]):
-						candid[topic]["rank"] = relateset[last_node][str(now_year)]["pre"][topic];
+					if (rank > candid[topic]["rank"]):
+						candid[topic]["rank"] = rank;
 						candid[topic]["parent"] = last_node;
 
 		sort_list = [];
@@ -243,13 +247,59 @@ def build_time_series(node,year,relateset):
 		limit = 20;
 		if (str(now_year) == year):
 			limit = 5;
-		result[str(pre_yesr)] = {}
+		result[str(pre_year)] = {}
 		for i in range(limit):
-			result[str(pre_year)][res[0]] = {}
-			result[str(pre_year)][res[0]]["rank"] = res[1];
-			result[str(pre_year)][res[0]]["parent"] = res[2];
+			result[str(pre_year)][res[i][0]] = {}
+			result[str(pre_year)][res[i][0]]["rank"] = res[i][1];
+			result[str(pre_year)][res[i][0]]["parent"] = res[i][2];
 		now_year = pre_year;
 	return result;
+
+def build_tstree(node,ts):
+	tmp = {};
+	tmp["topic"] = node.split("_")[0];
+	tmp["year"] = node.split("_")[1];
+	tmp["mark"] = ts[node]["mark"];
+	if (not "desc" in dataset[tmp["topic"]]):
+		tmp["desc"] = ["root"];
+	else:
+		tmp["desc"] = dataset[tmp["topic"]]["desc"];
+	if (len(ts[node]["children"]) != 0):
+		tmp["children"] = [];
+		for son in ts[node]["children"]:
+			tmp["children"].append(build_tstree(son, ts));
+	return tmp;
+
+def convert_time_series(ts, root_year):
+	root = ts[root_year].keys()[0] + "_" + root_year; 
+	tmp = {}
+	tmp[root] = {};
+	tmp[root]["children"] = [];
+	tmp[root]["mark"] = 0;
+	for iyear in range(int(root_year) + 1, 2005):
+		year = str(iyear);
+		for node in ts[year].keys():
+			topic = node + "_" + year;
+			parent = ts[year][node]["parent"] + "_" + str(iyear - 1);
+			tmp[parent]["children"].append(topic);
+			tmp[topic] = {}
+			tmp[topic]["children"] = [];
+			tmp[topic]["mark"] = 1;
+	for iyear in range(int(root_year) - 1, 1993, -1):
+		year = str(iyear);
+		for node in ts[year].keys():
+			topic = node + "_" + year;
+			parent = ts[year][node]["parent"] + "_" + str(iyear + 1);
+			tmp[parent]["children"].append(topic);
+			tmp[topic] = {}
+			tmp[topic]["children"] = [];
+			tmp[topic]["mark"] = 2;
+	result = build_tstree(root, tmp);
+	return result;
+
+
+
+
 
 fin = open("relate_word.dat", "r");
 relate_word = {}
@@ -287,12 +337,14 @@ relateset = {};
 
 for k in descdb.RangeIter():
 	dataset[k[0]] = json.loads(k[1]);
-for k in relatedb.RangeIter():
-	topic = k[0].split('_')[0];
-	year = k[0].split('_')[1];
-	relateset[topic] = {};
-	relateset[topic][year] = json.loads(k[1]);
+	relateset[k[0]] = {}
 
+#for k in relatedb.RangeIter():
+#	topic = k[0].split('_')[0];
+#	year = k[0].split('_')[1];
+#	relateset[topic][year] = json.loads(k[1]);
+
+#print(relateset["11286"]["2000"]);
 for topic in dataset.keys():
 	value = rpdb.Get(topic);
 	data = json.loads(value);
@@ -319,8 +371,7 @@ nodeB = "0";
 resultree = {};
 
 ts = build_time_series("11286", "2000",relateset);
-for year in range(1994,2005):
-	print (str(year) + " " + ts[str(year)]);
+print(convert_time_series(ts, "2000"));
 
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
