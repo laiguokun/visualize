@@ -3,7 +3,7 @@
 <html>
   <head>
     <link href='http://fonts.googleapis.com/css?family=Fauna+One' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" type="text/css" href="css/compare.css">
+    <link rel="stylesheet" type="text/css" href="css/ts.css">
     <script src="/js/d3.v3.min.js"></script>
   </head>
 
@@ -19,9 +19,13 @@
         <div id='search-box'>
           <span class='text'><h3>Search Words :</h3>  </span>       
           <input id = 'search-word'></input>
-          <span class='text'>set years(not necessary):</span>
-          <input id = 'search-year'></input>
           <button onClick="GC.Node.search();">search</button>
+        </div>
+        <p>
+        <div id='set-year-box'>
+          <span class='text'>set years:</span>
+          <input id = 'search-year' placeholder="not necessary"></input>
+          <button onClick="GC.Node.set_new_year();">set</button>
         </div>
         <div id='wordbox'></div>
         <div id='rateto0box'></div>
@@ -38,5 +42,5 @@
     </div>
 
   </body>
-  <script type="text/javascript" src="js/compare.js"></script>
+  <script type="text/javascript" src="js/ts.js"></script>
 </html>

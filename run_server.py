@@ -355,6 +355,8 @@ for topic in dataset.keys():
 	max_value = 0;
 	max_year = "1994";
 	for year in data.keys():
+		if (year == "min" or year == "max"):
+			continue;
 		if (float(data[year]) > max_value):
 			max_value = float(data[year]);
 			max_year = year;
@@ -575,6 +577,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			data = {}
 			data["result"] = node;
 			data["relate"] = relate;
+			data["year"] = default_year[node];
 			self.wfile.write(bytes(json.dumps(data)));
 			self.wfile.flush();
 		if req == 'buildsubtree':

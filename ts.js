@@ -131,7 +131,12 @@ var GC = {
     var node = null;
     var year = 1994;
     var ws = null;
-
+    var key = null;
+    Node.showWord = function(s)
+    {
+      var data = JSON.parse(Node.ws[s]);
+      Node.graphics.render_wordseries(data);
+    }
     Node.load = function (n) {
       GC.GetValueFromServer({type:"timeLine",node:n} , Node.on_load_timeline)
     }
@@ -145,23 +150,8 @@ var GC = {
     Node.search_node = function(s){
       var data = JSON.parse(s);
       var search_node = data.result;
-      var relate_word = data.relate;
-      var rtopic = document.getElementById("relate-word-content");
-      while (rtopic.hasChildNodes()) {   
-        rtopic.removeChild(rtopic.firstChild);
-      }
-      var textnode = document.createTextNode("relate word: ")
-      rtopic.appendChild(textnode);
-      for (var i = 0; i < relate_word.length; i++)
-      {
-        var node = document.createElement("a");
-        var textnode = document.createTextNode(relate_word[i].toString()+ " ");
-        node.appendChild(textnode);
-        node.href = "javascript:void(0)";
-        node.index = relate_word[i].toString();
-        node.onclick = function(){Node.search_word(this.index)};
-        rtopic.appendChild(node);
-      }
+      Node.key = search_node;
+      Node.year = data.year;
       Node.load(search_node);
     }
     Node.on_load_timeline = function(s){
@@ -174,7 +164,11 @@ var GC = {
       Node.ws = data5;
       Node.graphics.render_timeLine(data1, data2, data3, data4, data5,Node.key);
     }
-
+    Node.set_new_year = function()
+    {
+      Node.year = document.getElementById("search-year").value;
+      Node.graphics.render_change_year();
+    }
     Node.graphics = (function(){
 
       var gx = new Object();
@@ -303,7 +297,7 @@ var GC = {
           .domain([0,gx.xMarks.length-1])
           .range([padding,tw-padding]);
         gx.yScale = d3.scale.linear()
-          .domain([0,Math.max(d3.max(gx.timedata), d3.max(gx.timedataB))])
+          .domain([0, d3.max(gx.timedata)])
           .range([th-padding,padding]);
         gx.xAxis = d3.svg.axis()
           .scale(gx.xScale)  
@@ -594,7 +588,7 @@ var GC = {
       /* The 'core' non-leaf node rendering function using d3js */
 
 
-      gx.render_timeLine = function(DATA_A, DATA_B, nodeidA, nodeidB)
+      gx.render_timeLine = function(data, datar0, datarp, datart, dataws, nodeid)
       {
         var padding = 20;
         var th = 200;
@@ -640,7 +634,11 @@ var GC = {
         })  
         gx.timesvg.selectAll("circle")
         .attr("r",5)
-        .attr("fill","#09F");
+        .style("fill",function(d,i){
+          if ((i+1994).toString() == Node.year)
+            return '#09F';
+          else return 'grey';
+        });
         gx.xScale.domain([0,newLength - 1]);   
         gx.xAxis.scale(gx.xScale).ticks(cnt);
         gx.xBar.transition().duration(_duration).call(gx.xAxis);
@@ -680,7 +678,11 @@ var GC = {
         })  
         gx.timesvgr0.selectAll("circle")
         .attr("r",5)
-        .attr("fill","#09F");
+        .style("fill",function(d,i){
+          if ((i+1994).toString() == Node.year)
+            return '#09F';
+          else return 'grey';
+        });
         gx.xScaler0.domain([0,newLength - 1]);   
         gx.xAxisr0.scale(gx.xScaler0).ticks(cnt);
         gx.xBarr0.transition().duration(_duration).call(gx.xAxisr0);
@@ -720,7 +722,11 @@ var GC = {
         })  
         gx.timesvgrp.selectAll("circle")
         .attr("r",5)
-        .attr("fill","#09F");
+        .style("fill",function(d,i){
+          if ((i+1994).toString() == Node.year)
+            return '#09F';
+          else return 'grey';
+        });
         gx.xScalerp.domain([0,newLength - 1]);   
         gx.xAxisrp.scale(gx.xScalerp).ticks(cnt);
         gx.xBarrp.transition().duration(_duration).call(gx.xAxisrp);
@@ -743,29 +749,6 @@ var GC = {
             return gx.yScalerp(d);  
         });
 
-
-
-        //relate topic
-        var rtopic = document.getElementById("relate-topic-content");
-        while (rtopic.hasChildNodes()) {   
-          rtopic.removeChild(rtopic.firstChild);
-        }
-        if (datart.length != 0 && datart.length != undefined)
-        {
-          var textnode = document.createTextNode("relate topic: ")
-          rtopic.appendChild(textnode);
-        }
-        for (var i = 0; i < datart.length; i++)
-        {
-          var node = document.createElement("a");
-          var textnode = document.createTextNode("Topic" + datart[i].toString()+ " ");
-          node.appendChild(textnode);
-          node.href = "javascript:void(0)";
-          node.index = datart[i].toString();
-          node.onclick = function(){Node.load(this.index)};
-          rtopic.appendChild(node);
-        }
-
         var wordset = Object.keys(dataws);
         var wsnode = document.getElementById("wordselect");
         while (wsnode.hasChildNodes())
@@ -783,7 +766,7 @@ var GC = {
         }
       }
 
-      gx.render_wordseries = function (dataA, dataB)
+      gx.render_wordseries = function (data)
       {
         var padding = 20;
         var th = 200;
@@ -827,7 +810,11 @@ var GC = {
         })  
         gx.timesvgws.selectAll("circle")
         .attr("r",5)
-        .attr("fill","#09F");
+        .style("fill",function(d,i){
+          if ((i+1994).toString() == Node.year)
+            return '#09F';
+          else return 'grey';
+        });
         gx.xScalews.domain([0,newLength - 1]);   
         gx.xAxisws.scale(gx.xScalews).ticks(cnt);
         gx.xBarws.transition().duration(_duration).call(gx.xAxisws);
@@ -850,6 +837,37 @@ var GC = {
             return gx.yScalews(d);  
         }); 
       }   
+      gx.render_change_year = function()
+      {
+        gx.timesvg.selectAll("circle")
+        .attr("r", 5)
+        .style("fill",function(d,i){
+          if ((i+1994).toString() == Node.year)
+            return '#09F';
+          else return 'grey';
+        });
+        gx.timesvgr0.selectAll("circle")
+        .attr("r", 5)
+        .style("fill",function(d,i){
+          if ((i+1994).toString() == Node.year)
+            return '#09F';
+          else return 'grey';
+        });
+        gx.timesvgrp.selectAll("circle")
+        .attr("r", 5)
+        .style("fill",function(d,i){
+          if ((i+1994).toString() == Node.year)
+            return '#09F';
+          else return 'grey';
+        });
+        gx.timesvgws.selectAll("circle")
+        .attr("r", 5)
+        .style("fill",function(d,i){
+          if ((i+1994).toString() == Node.year)
+            return '#09F';
+          else return 'grey';
+        });
+      }
       /* End of graphics object */
       return gx;
     }());
