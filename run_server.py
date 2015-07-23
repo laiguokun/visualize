@@ -361,7 +361,7 @@ cfg.read('config.cfg');
 
 
 PORT = int( cfg.get('main','port') );
-PORT += random.randint(0,20);
+#PORT += random.randint(0,20);
 META_LEVELDB = leveldb.LevelDB( cfg.get('main','meta_leveldb_loc') );
 CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','content_leveldb_loc') );
 PUBMED_CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','pubmed_content_leveldb_loc') );
@@ -438,17 +438,17 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 		
 		webreq = (str(up[2]).split('&')[0])
 		# serve gc.html , every other request should be to GC
-		if webreq == '/gc.html' or up[2] == '/css/gc.css' or up[2] == '/js/gc.js' or up[2] == '/js/d3.v3.min.js':
+		if webreq == '/gc.html' or webreq == '/css/gc.css' or webreq == '/js/gc.js' or webreq == '/js/d3.v3.min.js':
 			self.send_response(200, 'OK' );
-			if up[2] == '/css/gc.css' :
+			if webreq == '/css/gc.css' :
 				self.send_header('Content-type', 'text/css');
 			else :
-				if up[2] == '/gc.html' :
+				if webreq == '/gc.html' :
 					self.send_header('Content-type', 'text/html');
 				else:
 					self.send_header('Content-type', 'text/javascript');
 			self.end_headers();
-			fname = './html' + up[2];
+			fname = './html' + webreq;
 			print " serving " + fname;
 			s = "";
 			if fname not in fcontent:
@@ -461,17 +461,17 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			return;
 
 		# the request-type must only be of form http://[..]/GC?GC_REQ=..&GC_DATASET=..&[GC_NODE=..]"
-		if up[2] == '/compare.html' or up[2] == '/css/compare.css' or up[2] == '/js/compare.js' or up[2] == '/js/d3.v3.min.js':
+		if webreq == '/compare.html' or webreq == '/css/compare.css' or webreq == '/js/compare.js' or webreq == '/js/d3.v3.min.js':
 			self.send_response(200, 'OK' );
-			if up[2] == '/css/compare.css' :
+			if webreq == '/css/compare.css' :
 				self.send_header('Content-type', 'text/css');
 			else :
-				if up[2] == '/compare.html' :
+				if webreq == '/compare.html' :
 					self.send_header('Content-type', 'text/html');
 				else:
 					self.send_header('Content-type', 'text/javascript');
 			self.end_headers();
-			fname = './html' + up[2];
+			fname = './html' + webreq;
 			print " serving " + fname;
 			s = "";
 			if fname not in fcontent:
@@ -483,17 +483,17 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			self.wfile.write(bytes(s));
 			return;
 
-		if up[2] == '/ts.html' or up[2] == '/css/ts.css' or up[2] == '/js/ts.js' or up[2] == '/js/d3.v3.min.js':
+		if webreq == '/ts.html' or webreq == '/css/ts.css' or webreq == '/js/ts.js' or webreq == '/js/d3.v3.min.js':
 			self.send_response(200, 'OK' );
-			if up[2] == '/css/ts.css' :
+			if webreq == '/css/ts.css' :
 				self.send_header('Content-type', 'text/css');
 			else :
-				if up[2] == '/ts.html' :
+				if webreq == '/ts.html' :
 					self.send_header('Content-type', 'text/html');
 				else:
 					self.send_header('Content-type', 'text/javascript');
 			self.end_headers();
-			fname = './html' + up[2];
+			fname = './html' + webreq;
 			print " serving " + fname;
 			s = "";
 			if fname not in fcontent:
@@ -611,7 +611,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			self.wfile.flush();
 		if req == 'searchNode':
 			global globalyear;
-			node = searchNode(qs['GC_NODE'][0], dataset);
+			if (qs['GC_NODE'][0].isdigit()):
+				node = qs['GC_NODE'][0];
+			else:
+				node = searchNode(qs['GC_NODE'][0], dataset);
 			relate = {}
 			if (qs['GC_NODE'][0] in relate_word):
 				relate = relate_word[qs['GC_NODE'][0]];
@@ -642,13 +645,29 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 		if req == 'buildsubtreeoftwoword':
 			wordA = qs['GC_NODEA'][0];
 			wordB = qs['GC_NODEB'][0];
-			L1 = searchWord(wordA, dataset);
-			L2 = searchWord(wordB, dataset);
+			if (wordA.isdigit()):
+				L1 = [wordA];
+				for i in range(0,4):
+					L1.append(relate_topic[wordA][i]);
+			else:
+				L1 = searchWord(wordA, dataset);
+			if (wordB.isdigit()):
+				L2 = [wordB];
+				for i in range(0,4):
+					L2.append(relate_topic[wordB][i]);
+			else:
+				L2 = searchWord(wordB, dataset);
 			LL = list(L1);
 			LL.extend(L2);
 			resultree = subtree_set(LL);
-			nodeA = searchNode(wordA,dataset);
-			nodeB = searchNode(wordB,dataset);
+			if (wordA.isdigit()):
+				nodeA = wordA;
+			else:
+				nodeA = searchNode(wordA,dataset);
+			if (wordB.isdigit()):
+				nodeB = wordB;
+			else:
+				nodeB = searchNode(wordB,dataset);
 			mark = subtree_AandB(nodeA, nodeB)
 			result = convert_tree(resultree, L1, L2, mark);
 #			print(L1);

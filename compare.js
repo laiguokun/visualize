@@ -17,9 +17,15 @@ var GC = {
    * and renders the the root node i.e. node 0 
    */
 
-  load : function( _dkey ) {
-    GC.datakey = _dkey;
-    GC.Hierarchy.load();
+  load : function() {
+    var URL = document.URL;
+    var tmp = URL.split("&");
+    var starta = 0;
+    if (tmp.length > 1)
+      if (tmp[1].split("=")[0] = "GC_NODEA")
+        starta = tmp[1].split("=")[1];
+    if (starta != 0)
+      GC.Node.search_wordA(starta);
   },
 
   /*********************************************************************
@@ -142,6 +148,14 @@ var GC = {
     }
     Node.loadA = function(n){
       GC.GetValueFromServer({type:"timeLine",node:n}, Node.on_load_timelineA);
+      var ha = document.getElementById("a-h-super");
+      ha.href = "http://bonda.lti.cs.cmu.edu:8003/gc.html&GC_NODE=" + n;
+      ha.text = "hierarchy";
+      var ts = document.getElementById("a-t-super");
+      ts.href = "http://bonda.lti.cs.cmu.edu:8003/ts.html&GC_NODE=" + n;
+      ts.text = "time_series";
+
+
     }
 
     Node.on_load_timelineA = function(s){
@@ -160,11 +174,11 @@ var GC = {
 
     Node.searchA = function(){
       var s = document.getElementById("set-word-A").value;
-      Node.wordA = s;
       Node.search_wordA(s);
     }
 
     Node.search_wordA = function(s){
+      Node.wordA = s;
       GC.GetValueFromServer({type:"searchNode", node:s}, Node.search_nodeA)
     }
     Node.search_nodeA = function(s){
@@ -177,6 +191,12 @@ var GC = {
 
     Node.loadB = function(n){
       GC.GetValueFromServer({type:"timeLine",node:n}, Node.on_load_timelineB);
+      var ha = document.getElementById("b-h-super");
+      ha.href = "http://bonda.lti.cs.cmu.edu:8003/gc.html&GC_NODE=" + n;
+      ha.text = "hierarchy";
+      var ts = document.getElementById("b-t-super");
+      ts.href = "http://bonda.lti.cs.cmu.edu:8003/ts.html&GC_NODE=" + n;
+      ts.text = "time_series";
     }
 
     Node.on_load_timelineB = function(s){
@@ -194,11 +214,11 @@ var GC = {
 
     Node.searchB = function(){
       var s = document.getElementById("set-word-B").value;
-      Node.wordB = s;
       Node.search_wordB(s);
     }
 
     Node.search_wordB = function(s){
+      Node.wordB = s;
       GC.GetValueFromServer({type:"searchNode", node:s}, Node.search_nodeB)
     }
     Node.search_nodeB = function(s){

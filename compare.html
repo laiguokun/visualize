@@ -7,20 +7,26 @@
     <script src="/js/d3.v3.min.js"></script>
   </head>
 
-  <body>
+  <body onLoad="GC.load()">
     <!-- This is the normal page -->
     <div id='page'>
       <!-- The left-page has the SVG container and canvas -->
       <div id='left-page'>
         <div id='setboxA' class = 'setboxA'>
           <span class='text'>Set words A :  </span>       
-          <input id = 'set-word-A' value = 'project'></input>
-          <button onClick="GC.Node.searchA()">Set Words A</button>
+          <input id = 'set-word-A'></input>
+          <button onClick="GC.Node.searchA()">Set</button>
+          <p></p>
+          <a id = "a-h-super"></a>
+          <a id = "a-t-super"></a>
         </div>
         <div id='setboxB' class = 'setboxB'>
           <span class='text'>Set words B :  </span>       
-          <input id = 'set-word-B' value = 'software'></input>
-          <button onClick="GC.Node.searchB()">Set Words B</button>
+          <input id = 'set-word-B' ></input>
+          <button onClick="GC.Node.searchB()">Set</button>
+          <p></p>
+          <a id = "b-h-super"></a>
+          <a id = "b-t-super"></a>
         </div>
         <div id='graph-part'></div>
   	  </div>

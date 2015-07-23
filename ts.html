@@ -7,12 +7,15 @@
     <script src="/js/d3.v3.min.js"></script>
   </head>
 
-  <body>
+  <body onLoad="GC.load()"> 
     <!-- This is the normal page -->
     <div id='page'>
       <!-- The left-page has the SVG container and canvas -->
       <div id='left-page'>
         <div id='graph-part'></div>
+        <a id='hi-super'></a>
+        <p></p>
+        <a id='tr-super'></a>
   	  </div>
       <!-- The right page is the side bar -->
       <div id='right-page'>

@@ -19,6 +19,11 @@ var GC = {
 
   load : function( _dkey ) {
     GC.datakey = _dkey;
+    var URL = document.URL;
+    var tmp = URL.split("&");
+    if (tmp.length > 1)
+      if (tmp[1].split("=")[0] = "GC_NODE")
+        start = tmp[1].split("=")[1];
     GC.Hierarchy.load();
   },
 
@@ -231,6 +236,12 @@ var GC = {
     Node.load = function (n) {
       GC.GetValueFromServer({type:"children",node:n} , Node.on_load );
       GC.GetValueFromServer({type:"timeLine",node:n} , Node.on_load_timeline)
+      var ts = document.getElementById("time-series-super");
+      ts.href = "http://bonda.lti.cs.cmu.edu:8003/ts.html&GC_NODE=" + n;
+      ts.text = "See_Time_Series";
+      var tr = document.getElementById("tr-super");
+      tr.href = "http://bonda.lti.cs.cmu.edu:8003/compare.html&GC_NODEA=" + n;
+      tr.text = "Draw_In_Tree";
     }
     /* From the current-node (non-root), calls loads the parent node */
 

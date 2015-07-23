@@ -17,9 +17,13 @@ var GC = {
    * and renders the the root node i.e. node 0 
    */
 
-  load : function( _dkey ) {
-    GC.datakey = _dkey;
-    GC.Hierarchy.load();
+  load : function() {
+    var URL = document.URL;
+    var tmp = URL.split("&");
+    if (tmp.length > 1)
+      if (tmp[1].split("=")[0] = "GC_NODE")
+        start = tmp[1].split("=")[1];
+    GC.Node.search_word(start);
   },
 
   /*********************************************************************
@@ -144,6 +148,12 @@ var GC = {
     }
     Node.load = function (n) {
       GC.GetValueFromServer({type:"timeLine",node:n} , Node.on_load_timeline)
+      var ha = document.getElementById("hi-super");
+      ha.href = "http://bonda.lti.cs.cmu.edu:8003/gc.html&GC_NODE=" + n;
+      ha.text = "See_Hierarchy";
+      var tr = document.getElementById("tr-super");
+      tr.href = "http://bonda.lti.cs.cmu.edu:8003/compare.html&GC_NODEA=" + n;
+      tr.text = "Draw_In_Tree";
     }
     Node.search = function(){
       var s = document.getElementById("search-word").value;
