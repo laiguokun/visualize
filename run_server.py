@@ -11,7 +11,7 @@ import StringIO
 import gzip
 import json
 import random;
-
+import math;
 # Valid requests are GC?GC_REQ=[content|hierarchy|children]
 #											&GC_DATASET=dataset
 #											&[GC_NODE=node]
@@ -216,7 +216,7 @@ def build_time_series(node,year,relatedb):
 		for topic in candid:
 			sort_list.append([topic, candid[topic]["rank"], candid[topic]["parent"]]);
 		res = sorted(sort_list, key = lambda x:x[1], reverse = True);
-		limit = 20;
+		limit = 12;
 		if (str(now_year) == year):
 			limit = 5;
 		result[str(next_year)] = {}
@@ -248,7 +248,7 @@ def build_time_series(node,year,relatedb):
 		for topic in candid:
 			sort_list.append([topic, candid[topic]["rank"], candid[topic]["parent"]]);
 		res = sorted(sort_list, key = lambda x:x[1], reverse = True);
-		limit = 20;
+		limit = 12;
 		if (str(now_year) == year):
 			limit = 5;
 		result[str(pre_year)] = {}
@@ -259,11 +259,22 @@ def build_time_series(node,year,relatedb):
 		now_year = pre_year;
 	return result;
 
-def build_tstree(node,ts):
+def build_tstree(node,ts, r0db):
 	tmp = {};
 	tmp["topic"] = node.split("_")[0];
 	tmp["year"] = node.split("_")[1];
-	tmp["mark"] = ts[node]["mark"];
+	tmp["mark"] = ts[node]["mark"]
+	tmp["rank"] = ts[node]["rank"]
+	value = r0db.Get(tmp["topic"]);
+	data = json.loads(value);
+	diff = 0;
+	if (tmp["year"] == "1995"):
+		diff = float(data["1995"]) - float(data["1994"]);
+	else:
+		if (tmp["year"] != "1994"):
+			diff = float(data[tmp["year"]]) - float(data[str(int(tmp["year"]) -2 )]);
+	diff *= 10;
+	tmp["diff"] = math.exp(diff)/(1+ math.exp(diff));
 	if (not "desc" in dataset[tmp["topic"]]):
 		tmp["desc"] = ["root"];
 	else:
@@ -271,15 +282,16 @@ def build_tstree(node,ts):
 	if (len(ts[node]["children"]) != 0):
 		tmp["children"] = [];
 		for son in ts[node]["children"]:
-			tmp["children"].append(build_tstree(son, ts));
+			tmp["children"].append(build_tstree(son, ts, r0db));
 	return tmp;
 
-def convert_time_series(ts, root_year):
+def convert_time_series(ts, root_year, r0db):
 	root = ts[root_year].keys()[0] + "_" + root_year; 
 	tmp = {}
 	tmp[root] = {};
 	tmp[root]["children"] = [];
 	tmp[root]["mark"] = 0;
+	tmp[root]["rank"] = 0;
 	for iyear in range(int(root_year) + 1, 2005):
 		year = str(iyear);
 		for node in ts[year].keys():
@@ -289,6 +301,7 @@ def convert_time_series(ts, root_year):
 			tmp[topic] = {}
 			tmp[topic]["children"] = [];
 			tmp[topic]["mark"] = 1;
+			tmp[topic]["rank"] = ts[year][node]["rank"];
 	for iyear in range(int(root_year) - 1, 1993, -1):
 		year = str(iyear);
 		for node in ts[year].keys():
@@ -298,9 +311,33 @@ def convert_time_series(ts, root_year):
 			tmp[topic] = {}
 			tmp[topic]["children"] = [];
 			tmp[topic]["mark"] = 2;
-	result = build_tstree(root, tmp);
+			tmp[topic]["rank"] = ts[year][node]["rank"];
+	result = build_tstree(root, tmp, r0db);
 	return result;
 
+def relate_set(data, year, r0db):
+	result = []
+	for node in data:
+		tmp = {};
+		tmp["topic"] = node;
+		tmp["year"] = year;
+		value = r0db.Get(tmp["topic"]);
+		ratedata = json.loads(value);
+		if (not "desc" in dataset[tmp["topic"]]):
+			tmp["desc"] = ["root"];
+		else:
+			tmp["desc"] = dataset[tmp["topic"]]["desc"];
+		diff = 0;
+		if (tmp["year"] == "1995"):
+			diff = float(ratedata["1995"]) - float(ratedata["1994"]);
+		else:
+			if (tmp["year"] != "1994"):
+				diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -2 )]);
+		diff *= 10;
+		tmp["diff"] = math.exp(diff)/(1+ math.exp(diff));
+		result.append(tmp);
+	print(result);
+	return result;		
 
 
 
@@ -350,12 +387,14 @@ for k in descdb.RangeIter():
 
 #print(relateset["11286"]["2000"]);
 for topic in dataset.keys():
-	value = rpdb.Get(topic);
+	value = r0db.Get(topic);
 	data = json.loads(value);
 	max_value = 0;
 	max_year = "1994";
 	for year in data.keys():
 		if (year == "min" or year == "max"):
+			continue;
+		if (int(year) < 1994 or int(year) > 2004):
 			continue;
 		if (float(data[year]) > max_value):
 			max_value = float(data[year]);
@@ -376,6 +415,8 @@ nodeA = "0";
 nodeB = "0";
 resultree = {};
 
+globalyear = "1994";
+
 #ts = build_time_series("11286", "2000",relatedb);
 #print(convert_time_series(ts, "2000"));
 
@@ -394,9 +435,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 		up = urlparse ( self.path ); 
 		qs = parse_qs ( up[4] );
 		req = "";
-
+		
+		webreq = (str(up[2]).split('&')[0])
 		# serve gc.html , every other request should be to GC
-		if up[2] == '/gc.html' or up[2] == '/css/gc.css' or up[2] == '/js/gc.js' or up[2] == '/js/d3.v3.min.js':
+		if webreq == '/gc.html' or up[2] == '/css/gc.css' or up[2] == '/js/gc.js' or up[2] == '/js/d3.v3.min.js':
 			self.send_response(200, 'OK' );
 			if up[2] == '/css/gc.css' :
 				self.send_header('Content-type', 'text/css');
@@ -535,6 +577,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				self.serve_key ( CONTENT_LEVELDB , key );
 			return;
 		if req == 'timeLine':
+			global globalyear;
 			node = qs['GC_NODE'][0];
 			try:
 				valuesum = sumdb.Get(node);
@@ -567,6 +610,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			self.wfile.write(bytes(json.dumps(data)));
 			self.wfile.flush();
 		if req == 'searchNode':
+			global globalyear;
 			node = searchNode(qs['GC_NODE'][0], dataset);
 			relate = {}
 			if (qs['GC_NODE'][0] in relate_word):
@@ -578,6 +622,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			data["result"] = node;
 			data["relate"] = relate;
 			data["year"] = default_year[node];
+			globalyear = default_year[node];
 			self.wfile.write(bytes(json.dumps(data)));
 			self.wfile.flush();
 		if req == 'buildsubtree':
@@ -632,6 +677,24 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			self.end_headers();
 			self.wfile.write(bytes(json.dumps(result)));
 			self.wfile.flush();
+
+		if req == 'TimeSeriesTree':
+			global globalyear;
+			node = qs['GC_NODE'][0].split('_')[0];
+			year = qs['GC_NODE'][0].split('_')[1];
+			print(node);
+			print(year);
+			globalyear = year;
+			resultree = build_time_series(node, year, relatedb);
+			result = convert_time_series(resultree, year, rpdb);
+			out = {}
+			out["tree"] = json.dumps(result);
+			out["relate"] = json.dumps(relate_set(relate_topic[node], year, rpdb));
+			self.send_response(200, 'OK');
+			self.send_header('Content-tpye', 'application/json');
+			self.end_headers();
+			self.wfile.write(bytes(json.dumps(out)));
+			self.wfile.flush();		
 
 	# Serves the value of the key
 	def serve_key ( self , L , key ):

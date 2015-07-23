@@ -103,6 +103,10 @@ var GC = {
       req += "&GC_REQ=buildsubtreeoftwoword&GC_NODEA=" + value.nodeA +"&GC_NODEB=" +value.nodeB;
     else if ( value.type == 'changeTreeNode')
       req += "&GC_REQ=changeTreeNode&GC_NODE=" + value.node;
+    else if ( value.type == 'TimeSeriesTree')
+      req += "&GC_REQ=TimeSeriesTree&GC_NODE=" + value.node;
+    else if ( value.type == 'TimeChange')
+      req += "&GC_REQ=TimeChange&GC_NODE=" + value.node;
     return req;
   } , 
 
@@ -132,6 +136,7 @@ var GC = {
     var year = 1994;
     var ws = null;
     var key = null;
+    var relateSet = null;
     Node.showWord = function(s)
     {
       var data = JSON.parse(Node.ws[s]);
@@ -153,6 +158,7 @@ var GC = {
       Node.key = search_node;
       Node.year = data.year;
       Node.load(search_node);
+      Node.get_tree();
     }
     Node.on_load_timeline = function(s){
       var dataset = (JSON.parse(s));
@@ -168,6 +174,34 @@ var GC = {
     {
       Node.year = document.getElementById("search-year").value;
       Node.graphics.render_change_year();
+      Node.get_tree();  
+    }
+
+    Node.get_tree = function()
+    {
+      GC.GetValueFromServer({type:"TimeSeriesTree",node:Node.key + "_" + Node.year} , Node.on_load_time_tree)
+    }
+
+    Node.on_load_time_tree = function(s)
+    {
+      var tmp = JSON.parse(s);
+      Node.time_tree = JSON.parse(tmp.tree);
+      var data6 = JSON.parse(tmp.relate);
+      Node.relateSet = new Array();
+      for (var i = 0; i < 4; i++)      
+      {
+        Node.relateSet[i] = data6[i];
+        Node.relateSet[i].index = i;
+      }
+      Node.graphics.render_tree(Node.time_tree);
+    }
+
+    Node.updateAll = function(a, b)
+    {
+      Node.key = a;
+      Node.year = b;
+      Node.get_tree();
+      Node.load(a);
     }
     Node.graphics = (function(){
 
@@ -177,7 +211,7 @@ var GC = {
 
       gx.d3data = null;
       var tw = 400;
-      var th = 200;
+      var th = 200; 
       var padding = 50;
 
       gx.timedata = [];
@@ -240,7 +274,7 @@ var GC = {
       gx.tree = null;
       gx.diagonal = null;
       gx.treeData = null;
-      var wmargin = 20;
+      var wmargin = 70;
       var hmargin = 70;
       gx.root = null;
       gx.nodes = null;
@@ -250,7 +284,9 @@ var GC = {
       gx.link = null;
       gx.cnt = null;
       gx.root = null;
-
+      gx.treetext = null;
+      gx.relateNode = null;
+      gx.relateNodeu = null;
       /* Add a svg element to the left-page. Well, you can put this in the html
        * as well. Add 'filters' to the svg object. Currently the only filter is
        * the 'shadow' filter which appears as a 'hover' on the circles.
@@ -258,7 +294,7 @@ var GC = {
 
       (function setup_graphics(){
         //initialize the tree
-        var w = document.documentElement.clientWidth*0.9*0.6;
+        var w = document.documentElement.clientWidth*0.6;
         var h = document.documentElement.clientHeight*0.9;
         gx.tree = d3.layout.tree()
         .size([w-2*wmargin, h-2*hmargin]);
@@ -266,12 +302,22 @@ var GC = {
         gx.diagonal = d3.svg.diagonal()
           .projection(function(d) { return [d.x, d.y]; });
 
-        gx.treesvg = d3.select("#graph-part").append("svg")
+        gx.treetext = d3.select("#graph-part").append("svg")
         .attr("width", w)
-        .attr("height", h)
+        .attr("height", h);
+        gx.treesvg = gx.treetext
         .append("g")
         .attr("transform", "translate(" + wmargin + "," + hmargin + ")");
-
+        var hinter = (h - 2 * hmargin)/11;
+        for (var year = 1994; year <= 2004; year ++)
+        {
+          gx.treetext.append("text")
+          .attr("x", w - wmargin/2)
+          .attr("y", hmargin + hinter * (year-1994) + hinter/2)
+          .attr("text-anchor", "right")  
+          .style("font-size", "12px") 
+          .text(year.toString());
+        }
         gx.timesvg = d3.select("#wordbox")
         .append("svg")
         .attr("width",tw)
@@ -590,9 +636,9 @@ var GC = {
 
       gx.render_timeLine = function(data, datar0, datarp, datart, dataws, nodeid)
       {
-        var padding = 20;
-        var th = 200;
-        var tw = 400;
+//        var tw = document.documentElement.clientWidth*0.95*0.4;
+ //       var th = document.documentElement.clientHeight*0.9; 
+ //       var padding = 20;
         var oldData = gx.timedata;
         var oldDatar0 = gx.timedatar0;
         var oldDatarp = gx.timedatarp;
@@ -768,9 +814,9 @@ var GC = {
 
       gx.render_wordseries = function (data)
       {
-        var padding = 20;
-        var th = 200;
-        var tw = 400;
+//        var padding = 20;
+ //       var th = 200;
+//        var tw = 400;
         var oldData = gx.timedataws;
         gx.timedataws = [];
         gx.xMarksws = []
@@ -867,6 +913,159 @@ var GC = {
             return '#09F';
           else return 'grey';
         });
+      }
+
+      gx.calc_new_coord = function(node, width, hinter, year_cnt)
+      {
+        var winter = width / 12;
+        if (Node.year == node.year)
+          winter = width/5;
+        if (node.children == undefined)
+          return;
+        var cnt1 = 0;
+        var cnt2 = 0;
+        for (var i = 0; i < node.children.length; i++)
+        {
+          if (node.children[i].mark == 1)
+            cnt1 +=1;
+          else
+            cnt2 +=1;
+        }
+        if (cnt1 != 0)
+        {
+          for (var i = 0; i < node.children.length; i++)
+            if (node.children[i].mark == 1)
+            {
+              node.children[i].y = node.y + hinter;
+              node.children[i].x = year_cnt[1][node.year] * winter + winter/2;
+              gx.calc_new_coord(node.children[i], width, hinter, year_cnt);
+              year_cnt[1][node.year] += 1;
+            }
+        }
+        if (cnt2 != 0)
+        {
+          for (var i = 0; i < node.children.length; i++)
+            if (node.children[i].mark == 2)
+            {
+              node.children[i].y = node.y - hinter;
+              node.children[i].x = year_cnt[2][node.year] * winter + winter/2;
+              gx.calc_new_coord(node.children[i], width, hinter, year_cnt);
+              year_cnt[2][node.year] += 1;
+            }
+        }
+      }
+      gx.convert = function(nodes)
+      {
+        var w = document.documentElement.clientWidth*0.95*0.6 - 2 * wmargin;
+        var h = document.documentElement.clientHeight*0.9 - 2 * hmargin;
+        var index = parseInt(Node.year) - 1994;
+        var rootnode = null;
+        for (var i = 0; i < nodes.length; i++)
+          if (nodes[i].depth == 0)
+            rootnode = nodes[i];
+        var hinter = h/11;
+        rootnode.x = w/2;
+        rootnode.y = hinter * index + hinter/2;
+        rootnode.x0 = rootnode.x;
+        rootnode.y0 = rootnode.y;
+        var year_cnt = new Array();
+        year_cnt[1] = new Array();
+        year_cnt[2] = new Array();
+        for (var i = 1994; i <= 2004; i++)
+        {
+          year_cnt[1][i.toString()] = 0;
+          year_cnt[2][i.toString()] = 0;
+        }
+        gx.calc_new_coord(rootnode, w, hinter, year_cnt);
+      }
+
+      gx.render_tree = function(root)
+      {
+        gx.root = root;
+        var w = document.documentElement.clientWidth*0.95*0.6 - 2 *wmargin;
+        var h = document.documentElement.clientHeight*0.9 - 2 * hmargin;
+        var duration = 750;
+        gx.cnt = 0;
+        gx.treesvg.selectAll("*").remove();
+        gx.nodes = gx.tree.nodes(gx.root).reverse();
+        gx.convert(gx.nodes);
+        //insert relate topic
+        var winter = w / 5;
+        for (var i = 0; i < Node.relateSet.length; i++)
+        {
+          if (i < 2) Node.relateSet[i].x = root.x0 - (2-i) * winter;
+          else Node.relateSet[i].x = root.x0 + (4-i) * winter;
+          Node.relateSet[i].y = root.y0;
+          gx.nodes.push(Node.relateSet[i]);
+        }
+        gx.links = gx.tree.links(gx.nodes);
+        gx.node = gx.treesvg.selectAll("g.node")
+                  .data(gx.nodes, function(d){return d.id || (d.id = ++gx.cnt);});
+        gx.nodeEnter = gx.node.enter().append("g")
+                      .attr("class","node")
+                      .attr("transform", function(d) {return "translate(" + root.x0 + "," + root.y0 + ")";})
+                      .on("click", function(d){
+                        GC.Node.updateAll(d.topic, d.year)
+                      });
+        gx.nodeEnter.append("circle")
+        .attr("r", function(d){
+          if (d.mark == 0)
+            return 15;
+          return 10;
+        })
+        .style("fill", function(d){
+          return "rgb( " + Math.round(255.0 * d.diff) 
+          + "," + Math.round(255.0 * (1.0-d.diff)) +  ", 0)";
+
+        })
+        gx.nodeEnter
+        .append("title").text(function(d){ return d.desc.join(", ")});
+        gx.nodeEnter.append("text")
+        .attr("y", function(d){ 
+          if (d.mark == 0)
+            return 0;
+          if (d.mark == 1) 
+          {
+            return d.children ? -20:20;
+          }
+          else
+          {
+            return d.children ? 20:-20;
+          }
+        }
+        )
+        .attr("dy",".35em")
+        .attr("text-anchor", function(d){return "middle"})
+        .text(function(d){return d.desc[0]})
+        .style("fill-opacity",1e-6);              
+        gx.nodeEnter
+        .append("title").text(function(d){ return d.desc.join(", ")});    
+        gx.nodeEnter.append("text")
+        .attr("y", -20)
+        .attr("dy",".35em")
+        .attr("text-anchor", function(d){return "middle"})
+        .text(function(d){return d.desc[0]})
+        .style("fill-opacity",1e-6);
+
+        gx.nodeUpdate = gx.node.transition()
+                        .duration(duration)
+                        .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")";});
+        gx.nodeUpdate.select("text")
+        .style("fill-opacity", 1);
+        gx.link = gx.treesvg.selectAll("path.link")
+        .data(gx.links, function(d) { return d.target.id;});
+        gx.link.enter().insert("path", "g")
+        .attr("class", "link")
+        .attr("d", function(d){
+          var o = {x: root.x0, y: root.y0};
+          return gx.diagonal({source: o, target: o});
+        })
+        .attr("stroke-width", function(d){
+          return 10 * d.target.rank;
+        });
+        gx.link.transition()
+        .duration(duration)
+        .attr("d", gx.diagonal);
       }
       /* End of graphics object */
       return gx;

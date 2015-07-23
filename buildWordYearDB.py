@@ -79,7 +79,7 @@ for topic in desc:
 #		if (year != "2000"):
 #			continue;
 		out = {}
-		if (int(year)>1994):
+		if (int(year)<2004):
 			time = str(int(year) + 1);
 			candid = {}
 			for word in desc[topic][year]:
@@ -94,7 +94,7 @@ for topic in desc:
 			out["next"] = []
 			for i in range(min(20, len(candid))):
 				out["next"].append(res[i]);
-		if (int(year)<2004):
+		if (int(year)>1994):
 			time = str(int(year) - 1);
 			candid = {}
 			for word in desc[topic][year]:
