@@ -20,12 +20,16 @@ var GC = {
   load : function() {
     var URL = document.URL;
     var tmp = URL.split("&");
-    var starta = 0;
+    var starta = 0,startb = 0;
     if (tmp.length > 1)
       if (tmp[1].split("=")[0] = "GC_NODEA")
         starta = tmp[1].split("=")[1];
+      if (tmp[2].split("=")[0] = "GC_NODEB")
+        startb = tmp[2].split("=")[1];
     if (starta != 0)
       GC.Node.search_wordA(starta);
+    if (startb != 0)
+      GC.Node.search_wordB(startb);
   },
 
   /*********************************************************************
@@ -352,6 +356,7 @@ var GC = {
       gx.link = null;
       gx.cnt = null;
       gx.root = null;
+      gx.grad = null;
 
       /* Add a svg element to the left-page. Well, you can put this in the html
        * as well. Add 'filters' to the svg object. Currently the only filter is
@@ -373,6 +378,11 @@ var GC = {
         .attr("height", h)
         .append("g")
         .attr("transform", "translate(" + wmargin + "," + hmargin + ")");
+
+//        gx.grad = gx.treesvg.append("defs").append("linearGradient").attr("id", "grad")
+//                  .attr("x1", "0%").attr("x2", "100%").attr("y1", "0%").attr("y2", "0%");
+//        gx.grad.append("stop").attr("offset", "50%").style("stop-color", "blue");
+//        gx.grad.append("stop").attr("offset", "50%").style("stop-color", "purple");
 
         gx.timesvg = d3.select("#wordbox")
         .append("svg")
@@ -1044,6 +1054,12 @@ var GC = {
         gx.nodeEnter = gx.node.enter().append("g")
                       .attr("class","node")
                       .attr("transform", function(d) {return "translate(" + root.x0 + "," + root.y0 + ")";});
+        
+
+        var grad = gx.treesvg.append("defs").append("linearGradient").attr("id", "grad")
+                    .attr("x1", "0%").attr("x2", "100%").attr("y1", "0%").attr("y2", "0%");
+        grad.append("stop").attr("offset", "50%").style("stop-color", "purple");
+        grad.append("stop").attr("offset", "50%").style("stop-color", "blue");
         gx.nodeEnter.append("circle")
         .attr("r", function(d){
           if (d.mark == 1) return 20;
@@ -1052,6 +1068,7 @@ var GC = {
         .style("fill", function(d){
           if (d.set == 1) return "blue";
           if (d.set == 2) return "purple";
+          if (d.set == 4) return "url(#grad)";
           return "grey";
 
         })

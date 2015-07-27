@@ -13,6 +13,8 @@ var GC = {
   /* Stores the name of the dataset */
   datakey : "csxml" , 
 
+  showState : "author",
+
   /* The function that should be called first , load the database 
    * and renders the the root node i.e. node 0 
    */
@@ -23,7 +25,9 @@ var GC = {
     if (tmp.length > 1)
       if (tmp[1].split("=")[0] = "GC_NODE")
         start = tmp[1].split("=")[1];
-    GC.Node.search_word(start);
+    if (start != 0)
+      GC.Node.search_word(start);
+    GC.Node.search_author("yiming");
   },
 
   /*********************************************************************
@@ -111,6 +115,8 @@ var GC = {
       req += "&GC_REQ=TimeSeriesTree&GC_NODE=" + value.node;
     else if ( value.type == 'TimeChange')
       req += "&GC_REQ=TimeChange&GC_NODE=" + value.node;
+    else if ( value.type == 'AuthorGraph')
+      req += "&GC_REQ=AuthorTree&GC_NODE=" + value.node;
     return req;
   } , 
 
@@ -141,6 +147,8 @@ var GC = {
     var ws = null;
     var key = null;
     var relateSet = null;
+    var addition_edge = null;
+    var author = "hartel";
     Node.showWord = function(s)
     {
       var data = JSON.parse(Node.ws[s]);
@@ -187,9 +195,17 @@ var GC = {
       Node.get_tree();  
     }
 
+    Node.search_author = function(s)
+    {
+      Node.author = s;
+      Node.get_tree();
+    }
     Node.get_tree = function()
     {
-      GC.GetValueFromServer({type:"TimeSeriesTree",node:Node.key + "_" + Node.year} , Node.on_load_time_tree)
+      if (GC.showState == "topic")
+        GC.GetValueFromServer({type:"TimeSeriesTree",node:Node.key + "_" + Node.year} , Node.on_load_time_tree)
+      if (GC.showState == "author")
+        GC.GetValueFromServer({type:"AuthorGraph", node:Node.author}, Node.on_load_time_tree);
     }
 
     Node.on_load_time_tree = function(s)
@@ -197,11 +213,15 @@ var GC = {
       var tmp = JSON.parse(s);
       Node.time_tree = JSON.parse(tmp.tree);
       var data6 = JSON.parse(tmp.relate);
+      Node.addition_edge = JSON.parse(tmp.addition_edge);
       Node.relateSet = new Array();
-      for (var i = 0; i < 4; i++)      
+      if (data6.length > 0)
       {
-        Node.relateSet[i] = data6[i];
-        Node.relateSet[i].index = i;
+        for (var i = 0; i < 4; i++)      
+        {
+          Node.relateSet[i] = data6[i];
+          Node.relateSet[i].index = i;
+        }
       }
       Node.graphics.render_tree(Node.time_tree);
     }
@@ -297,6 +317,7 @@ var GC = {
       gx.treetext = null;
       gx.relateNode = null;
       gx.relateNodeu = null;
+      gx.nodesmap = null;
       /* Add a svg element to the left-page. Well, you can put this in the html
        * as well. Add 'filters' to the svg object. Currently the only filter is
        * the 'shadow' filter which appears as a 'hover' on the circles.
@@ -989,6 +1010,60 @@ var GC = {
         gx.calc_new_coord(rootnode, w, hinter, year_cnt);
       }
 
+      gx.getnodes = function(root)
+      {
+        var w = document.documentElement.clientWidth*0.95*0.6 - 2 * wmargin;
+        var h = document.documentElement.clientHeight*0.9 - 2 * hmargin;
+        var hinter = h/11;
+        var cnt = new Array();
+        var sum = new Array();
+        var res = new Array();
+        gx.nodesmap = new Object();
+        for (var i = 0; i < root.length; i++)
+        {
+          var year = root[i].year;
+          if (sum[year] == undefined)
+          {
+            cnt[year] = 0;
+            sum[year] = 0;
+          }
+          sum[year] += 1;
+        }
+        for (var i = 0; i < root.length; i++)
+        {
+          var node = root[i].nodeId;
+          var year = root[i].year;
+          var winter = w/sum[year];
+          var tmp = new Object;
+          tmp.y = (parseInt(year) - 1994) * hinter + hinter / 2;
+          tmp.x = cnt[year] * winter + winter / 2;
+          tmp.node = node;
+          tmp.year = year;
+          tmp.desc = root[i].desc;
+          gx.nodesmap[root[i].node] = res.length;
+          cnt[year] += 1;
+          res.push(tmp);
+        }
+        return res;
+      }
+
+      gx.getlinks = function()
+      {
+        var edge = Node.addition_edge;
+        var nodes = gx.nodes;
+        var res = new Array();
+        for (var i = 0; i < edge.length; i++)
+        {
+          var tmp = new Object();
+          tmp.source = gx.nodes[gx.nodesmap[edge[i].source]];
+          tmp.target = gx.nodes[gx.nodesmap[edge[i].target]];
+          tmp.rank = edge[i].rank;
+          tmp.idadd = 1;
+          res.push(tmp);
+        }
+        return res;
+      }
+
       gx.render_tree = function(root)
       {
         gx.root = root;
@@ -997,18 +1072,28 @@ var GC = {
         var duration = 750;
         gx.cnt = 0;
         gx.treesvg.selectAll("*").remove();
-        gx.nodes = gx.tree.nodes(gx.root).reverse();
-        gx.convert(gx.nodes);
-        //insert relate topic
-        var winter = w / 5;
-        for (var i = 0; i < Node.relateSet.length; i++)
+        root.x0 = 0;
+        root.y0 = 0;
+        if (GC.showState == "topic")
         {
-          if (i < 2) Node.relateSet[i].x = root.x0 - (2-i) * winter;
-          else Node.relateSet[i].x = root.x0 + (4-i) * winter;
-          Node.relateSet[i].y = root.y0;
-          gx.nodes.push(Node.relateSet[i]);
+          gx.nodes = gx.tree.nodes(gx.root).reverse();
+          gx.convert(gx.nodes);
+          //insert relate topic
+          var winter = w / 5;
+          for (var i = 0; i < Node.relateSet.length; i++)
+          {
+            if (i < 2) Node.relateSet[i].x = root.x0 - (2-i) * winter;
+            else Node.relateSet[i].x = root.x0 + (4-i) * winter;
+            Node.relateSet[i].y = root.y0;
+            gx.nodes.push(Node.relateSet[i]);
+          }
+          gx.links = gx.tree.links(gx.nodes);
         }
-        gx.links = gx.tree.links(gx.nodes);
+        if (GC.showState == "author")
+        {
+          gx.nodes = gx.getnodes(root);
+          gx.links = gx.getlinks();
+        }
         gx.node = gx.treesvg.selectAll("g.node")
                   .data(gx.nodes, function(d){return d.id || (d.id = ++gx.cnt);});
         gx.nodeEnter = gx.node.enter().append("g")
@@ -1063,17 +1148,31 @@ var GC = {
         gx.nodeUpdate.select("text")
         .style("fill-opacity", 1);
         gx.link = gx.treesvg.selectAll("path.link")
-        .data(gx.links, function(d) { return d.target.id;});
-        gx.link.enter().insert("path", "g")
+        .data(gx.links);
+        gx.link.enter()
+        .insert("path", "g")
         .attr("class", "link")
         .attr("d", function(d){
           var o = {x: root.x0, y: root.y0};
           return gx.diagonal({source: o, target: o});
         })
+        .on("click", function(d) { 
+          window.open("http://bonda.lti.cs.cmu.edu:8011/compare.html&GC_NODEA="
+           + d.source.node + "&GC_NODEB=" + d.target.node); 
+        })
         .attr("stroke-width", function(d){
-          return 10 * d.target.rank;
+          if (d.isadd == 0)
+            return 15 * d.target.rank;
+          else
+            return 15 * d.rank;
         });
-        gx.link.transition()
+    /*
+        .attr("xlink:href", function(d){
+          return "http://bonda.lti.cs.cmu.edu:8003/compare.html&GC_NODEA="
+           + d.source.nodeId + "&GC_NODEB=" + d.target.nodeIDd;
+        });*/
+        gx.link
+        .transition()
         .duration(duration)
         .attr("d", gx.diagonal);
       }

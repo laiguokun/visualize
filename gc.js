@@ -103,6 +103,8 @@ var GC = {
       req += "&GC_REQ=timeLine&GC_NODE=" + value.node;
     else if ( value.type == "searchNode")
       req += "&GC_REQ=searchNode&GC_NODE=" + value.node;
+    else if ( value.type == "getAllWord")
+      req += "&GC_REQ=getAllWord";
     return req;
   } , 
 
@@ -124,7 +126,6 @@ var GC = {
     xm.open('get' , url , true );
     xm.send();
   } ,
-
   /* Holds all the information of the current node being displayed */
 
   Node : (function(){

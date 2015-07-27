@@ -179,14 +179,12 @@ function update(source,treedata) {
   convert(nodes);
   var links = tree.links(nodes);
 
-  var new_set = new Array();
-  new_set[0]= new Object();
-  new_set[0].x = 300;
-  new_set[0].y = 10; 
-  new_set[1] = new Object();
-  new_set[1].x = 100;
-  new_set[1].y = 300;
-  nodes.push(new_set[0]);
+var grad = svg.append("defs").append("linearGradient").attr("id", "grad")
+    .attr("x1", "0%").attr("x2", "100%").attr("y1", "0%").attr("y2", "0%");
+grad.append("stop").attr("offset", "30%").style("stop-color", "lightblue");
+grad.append("stop").attr("offset", "60%").style("stop-color", "green");
+grad.append("stop").attr("offset", "100%").style("stop-color", "purple");
+
   // Update the nodes…
   var node = svg.selectAll("g.node")
 	  .data(nodes, function(d) { return d.id || (d.id = ++i); });
@@ -201,12 +199,12 @@ function update(source,treedata) {
 
   nodeEnter.append("circle")
 	  .attr("r", 10)
-	  .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
+	  .style("fill","url(#grad)");
   // Transition nodes to their new position.
 
   // Update the links…
   var link = svg.selectAll("path.link")
-	  .data(links, function(d) { return d.target.id; });
+	  .data(links);
 
   // Enter any new links at the parent's previous position.
   link.enter().insert("path", "g")

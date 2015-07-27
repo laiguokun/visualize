@@ -110,5 +110,5 @@ for topic in desc:
 			for i in range(min(20, len(candid))):
 				out["pre"].append(res[i]);
 		s = topic + "_" + year;
-		relatedb.Put(s, json.dumps(out));
+#		relatedb.Put(s, json.dumps(out));
 

@@ -20,9 +20,25 @@ import math;
 # rcv1_hierarchy , rcv1_content_3453 , rcv1_children_3443
 
 # Get timeLine info;
+cfg = ConfigParser.ConfigParser();
+cfg.read('config.cfg');
+
+
+PORT = int( cfg.get('main','port') );
+PORT += random.randint(0,20);
+META_LEVELDB = leveldb.LevelDB( cfg.get('main','meta_leveldb_loc') );
+CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','content_leveldb_loc') );
+PUBMED_CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','pubmed_content_leveldb_loc') );
+sumdb = leveldb.LevelDB( cfg.get('main','timeLine-sum_leveldb_loc'));
+r0db = leveldb.LevelDB( cfg.get('main','timeLine-rateto0_leveldb_loc'));
+rpdb = leveldb.LevelDB( cfg.get('main','timeLine-ratetop_leveldb_loc'));
+wsdb = leveldb.LevelDB( cfg.get('main','wordSeries_leveldb_loc'));
+descdb = leveldb.LevelDB(cfg.get('main', 'desc_leveldb_loc'));
+relatedb = leveldb.LevelDB(cfg.get('main', 'relate_leveldb_loc'));
+authordb = leveldb.LevelDB(cfg.get('main', 'author_leveldb_loc'));
+
 def searchNode(query, dataset):
 	words = query.split();
-	print(words);
 	candid = {}
 	max_hit_time = 0;
 	topic = 0;
@@ -122,6 +138,8 @@ def buildtree(tree, node, L1, L2, mark):
 #	print(L1);
 	if (node in L1):
 		tmp["set"] = 1;
+		if (node in L2):
+			tmp["set"] = 4;
 	else:
 		if (node in L2):
 			tmp["set"] = 2;
@@ -187,7 +205,7 @@ def convert_tree(tree, L1, L2, mark):
 	result["parent"] = "null";
 	return result;
 
-def build_time_series(node,year,relatedb):
+def build_time_series(node,year,relatedb, addition_edge):
 	result = {}
 	now_year = int(year);
 	result[year] = {};
@@ -216,14 +234,28 @@ def build_time_series(node,year,relatedb):
 		for topic in candid:
 			sort_list.append([topic, candid[topic]["rank"], candid[topic]["parent"]]);
 		res = sorted(sort_list, key = lambda x:x[1], reverse = True);
-		limit = 12;
+		limit = 3;
 		if (str(now_year) == year):
-			limit = 5;
+			limit = 3;
 		result[str(next_year)] = {}
 		for i in range(limit):
 			result[str(next_year)][res[i][0]] = {};
 			result[str(next_year)][res[i][0]]["rank"] = res[i][1];
 			result[str(next_year)][res[i][0]]["parent"] = res[i][2];
+
+		min_value = res[limit/5 * 5][1];
+		for last_node in result[str(now_year)].keys():
+			value = relatedb.Get(last_node + "_" + str(now_year));
+			data = json.loads(value);
+			for item in data["next"]:
+				topic = item[0];
+				rank = item[1];
+				if (rank > min_value and (result[str(next_year)][topic]["parent"] != last_node)):
+					addition_edge.append([last_node + "_" + str(now_year)
+						, topic + "_" + str(next_year)
+						,rank]);
+
+
 		now_year = next_year;
 	now_year = int(year);
 	while (now_year >=1995):
@@ -248,14 +280,28 @@ def build_time_series(node,year,relatedb):
 		for topic in candid:
 			sort_list.append([topic, candid[topic]["rank"], candid[topic]["parent"]]);
 		res = sorted(sort_list, key = lambda x:x[1], reverse = True);
-		limit = 12;
+		limit = 3;
 		if (str(now_year) == year):
-			limit = 5;
+			limit = 3;
 		result[str(pre_year)] = {}
 		for i in range(limit):
 			result[str(pre_year)][res[i][0]] = {}
 			result[str(pre_year)][res[i][0]]["rank"] = res[i][1];
 			result[str(pre_year)][res[i][0]]["parent"] = res[i][2];
+
+		min_value = res[limit/5 * 5][1];
+		for last_node in result[str(now_year)].keys():
+			value = relatedb.Get(last_node + "_" + str(now_year));
+			data = json.loads(value);
+			for item in data["pre"]:
+				topic = item[0];
+				rank = item[1];
+				if (rank > min_value and (result[str(pre_year)][topic]["parent"] != last_node)):
+					addition_edge.append([last_node + "_" + str(now_year)
+						, topic + "_" + str(pre_year)
+						,rank]);
+				
+
 		now_year = pre_year;
 	return result;
 
@@ -336,8 +382,115 @@ def relate_set(data, year, r0db):
 		diff *= 10;
 		tmp["diff"] = math.exp(diff)/(1+ math.exp(diff));
 		result.append(tmp);
-	print(result);
-	return result;		
+	return result;	
+
+author_name = []
+
+def getSimilarity(nodeA, nodeB):
+	nodeIdA = nodeA.split('_')[0];
+	nodeIdB = nodeB.split('_')[0];
+	yearA = nodeA.split('_')[1];
+	yearB = nodeB.split('_')[1];
+	res = 0.0;
+	setA = json.loads(wsdb.Get(nodeA))["desc"];
+	setB = json.loads(wsdb.Get(nodeB))["desc"];
+	for word in setA:
+		if (word in setB):
+			res += 1.0;
+	l = len(setA) + len(setB);
+	return res / (l - res);
+
+def connected(nodeA, nodeB, edge):
+	head = 0;
+	tail = 0;
+	q = [];
+	q.append(nodeA);
+	mark = {}
+	while (head < tail):
+		node = q[head];
+		if (node in edge):
+			for node_next in edge[node]:
+				if (not node_next in mark):
+					mark[node_next] = True;
+				q.append(node_next)
+				tail += 1;
+		head += 1;
+	if (nodeB in q):
+		return True;
+	else:
+		return False;
+
+
+def getAuthorTree(author, condition,db):
+	result = {};
+	result["tree"] = [];
+	result["edge"] = []
+	max_value = 0;
+	target = 0;
+	start = condition["start"];
+	end = condition["end"];
+	node_limit = condition["node_limit"];
+	edge_limit = condition["edge_limit"];
+	for name in author_name:
+		if (author.lower() in name.lower()):
+			value = db.Get(name);
+#			print(value);
+			value = json.loads(value);
+			if (len(value)) > max_value:
+				max_value = len(value);
+				target = name;
+	print(target);
+	if (target == 0):
+		return result;
+	value = json.loads(db.Get(target));
+	candid = {}
+	for node in value.keys():
+		year = node.split('_')[1];
+		if (int(year) < int(start) or int(year) > int(end)):
+			continue;
+		candid[node] = value[node];
+	res = sorted(candid.items(), key = lambda x:x[1]);
+	for i in range(min(node_limit, len(res))):
+		tmp = {}
+		tmp["nodeId"] = res[i][0].split('_')[0];
+		tmp["rank"] = res[i][1];
+		tmp["year"] = res[i][0].split('_')[1];
+		tmp["node"] = res[i][0];
+		value = json.loads(wsdb.Get(res[i][0]));
+		tmp["desc"] = value["desc"];
+		tmp["keyw"] = value["keyw"];
+		result["tree"].append(tmp);
+	node_num = len(result["tree"]);
+	candid = {};
+	for i in range(node_num):
+		for j in range(i+1, node_num):
+			nodeA = result["tree"][i]["node"];
+			nodeB = result["tree"][j]["node"];
+			if (int(result["tree"][i]["year"]) == int(result["tree"][j]["year"])):
+				continue;
+			index = nodeA + '-' + nodeB;
+			candid[index] = getSimilarity(nodeA, nodeB);
+	res = sorted(candid.items(), key = lambda x:x[1], reverse = True);
+	i = 0;
+	edge = {};
+	while (len(result["edge"]) < edge_limit and i < len(res)):
+		index = res[i][0];
+		nodeA = index.split("-")[0];
+		nodeB = index.split("-")[1];
+		if (not connected(nodeA, nodeB, edge)):
+			tmp = {}
+			tmp["source"] = nodeA;
+			tmp["target"] = nodeB;
+			tmp["rank"] = res[i][1];
+			result["edge"].append(tmp);
+			if (not nodeA in edge):
+				edge[nodeA] = [];
+			edge[nodeA].append(nodeB);
+		i += 1;
+	return result;
+
+
+
 
 
 
@@ -356,21 +509,7 @@ for line in fin:
 
 
 # Get configuration from config.cfg
-cfg = ConfigParser.ConfigParser();
-cfg.read('config.cfg');
 
-
-PORT = int( cfg.get('main','port') );
-#PORT += random.randint(0,20);
-META_LEVELDB = leveldb.LevelDB( cfg.get('main','meta_leveldb_loc') );
-CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','content_leveldb_loc') );
-PUBMED_CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','pubmed_content_leveldb_loc') );
-sumdb = leveldb.LevelDB( cfg.get('main','timeLine-sum_leveldb_loc'));
-r0db = leveldb.LevelDB( cfg.get('main','timeLine-rateto0_leveldb_loc'));
-rpdb = leveldb.LevelDB( cfg.get('main','timeLine-ratetop_leveldb_loc'));
-wsdb = leveldb.LevelDB( cfg.get('main','wordSeries_leveldb_loc'));
-descdb = leveldb.LevelDB(cfg.get('main', 'desc_leveldb_loc'));
-relatedb = leveldb.LevelDB(cfg.get('main', 'relate_leveldb_loc'));
 fcontent = {};
 dataset = {}
 default_year = {};
@@ -380,6 +519,26 @@ for k in descdb.RangeIter():
 	dataset[k[0]] = json.loads(k[1]);
 	relateset[k[0]] = {}
 
+for k in authordb.RangeIter():
+	author_name.append(k[0]);
+
+#print(author_name);
+'''
+fin = open("wordSeries.dat")
+desc_year = {};
+inverse_list = {}
+for line in fin:
+	words = line[0:-1].split('\t');
+	topic = words[0];
+	word = words[1];
+	if (not topic in desc_year):
+		desc_year[topic] = {}
+	for i in range(2, len(words)):
+		year = words[i].split(':')[0];
+		if (not year in desc_year[topic]):
+			desc_year[topic][year] = [];
+		desc_year[topic][year].append(word);
+'''
 #for k in relatedb.RangeIter():
 #	topic = k[0].split('_')[0];
 #	year = k[0].split('_')[1];
@@ -417,9 +576,18 @@ resultree = {};
 
 globalyear = "1994";
 
-#ts = build_time_series("11286", "2000",relatedb);
-#print(convert_time_series(ts, "2000"));
-
+#addition_edge = []
+#ts = build_time_series("11286", "2000",relatedb, addition_edge);
+#print(addition_edge);
+'''
+condition = {}
+condition["start"] = "1994";
+condition["end"] = "2004";
+condition["node_limit"] = 10;
+condition["edge_limit"] = 10;
+result = getAuthorTree("hartel",condition, authordb);
+print(result);
+'''
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 	def __init__(self, request, client_address, server):
@@ -489,6 +657,28 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				self.send_header('Content-type', 'text/css');
 			else :
 				if webreq == '/ts.html' :
+					self.send_header('Content-type', 'text/html');
+				else:
+					self.send_header('Content-type', 'text/javascript');
+			self.end_headers();
+			fname = './html' + webreq;
+			print " serving " + fname;
+			s = "";
+			if fname not in fcontent:
+				f = open(fname,'r');
+				s = f.read();
+				f.close();
+			else:
+				s = fcontent[fname];				
+			self.wfile.write(bytes(s));
+			return;
+
+		if webreq == '/tss.html' or webreq == '/css/tss.css' or webreq == '/js/tss.js' or webreq == '/js/d3.v3.min.js':
+			self.send_response(200, 'OK' );
+			if webreq == '/css/tss.css' :
+				self.send_header('Content-type', 'text/css');
+			else :
+				if webreq == '/tss.html' :
 					self.send_header('Content-type', 'text/html');
 				else:
 					self.send_header('Content-type', 'text/javascript');
@@ -704,16 +894,37 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			print(node);
 			print(year);
 			globalyear = year;
-			resultree = build_time_series(node, year, relatedb);
+			addition_edge = [];
+			resultree = build_time_series(node, year, relatedb, addition_edge);
 			result = convert_time_series(resultree, year, rpdb);
 			out = {}
 			out["tree"] = json.dumps(result);
 			out["relate"] = json.dumps(relate_set(relate_topic[node], year, rpdb));
+			out["addition_edge"] = json.dumps(addition_edge);
 			self.send_response(200, 'OK');
 			self.send_header('Content-tpye', 'application/json');
 			self.end_headers();
 			self.wfile.write(bytes(json.dumps(out)));
 			self.wfile.flush();		
+
+		if req == 'AuthorTree':
+			author = qs['GC_NODE'][0];
+			condition = {}
+			condition["start"] = "1994";
+			condition["end"] = "2004";
+			condition["node_limit"] = 10;
+			condition["edge_limit"] = 10;
+			result = getAuthorTree(author, condition, authordb);
+			out = {}
+			out["tree"] = json.dumps(result["tree"]);
+			out["relate"] = json.dumps([]);
+			out["addition_edge"] = json.dumps(result["edge"]);
+			self.send_response(200, 'OK');
+			self.send_header('Content-tpye', 'application/json');
+			self.end_headers();
+			self.wfile.write(bytes(json.dumps(out)));
+			self.wfile.flush();				
+
 
 	# Serves the value of the key
 	def serve_key ( self , L , key ):
