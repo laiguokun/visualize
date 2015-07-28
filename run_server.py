@@ -476,6 +476,16 @@ def getAuthorTree(author, condition,db):
 		tmp["keyw"] = []
 		for i in range(3):
 			tmp["keyw"].append(value["keyw"][i][0]);
+		value = rpdb.Get(tmp["nodeId"]);
+		ratedata = json.loads(value);
+		diff = 0;
+		if (tmp["year"] == "1995"):
+			diff = float(ratedata["1995"]) - float(ratedata["1994"]);
+		else:
+			if (tmp["year"] != "1994"):
+				diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -2 )]);
+		diff *= 10;
+		tmp["diff"] = 1 / (1+ math.exp(-diff));
 		result["tree"].append(tmp);
 	node_num = len(result["tree"]);
 	candid = {};
@@ -504,6 +514,8 @@ def getAuthorTree(author, condition,db):
 				edge[nodeA] = [];
 			edge[nodeA].append(nodeB);
 		i += 1;
+	print(len(result["edge"]));
+	print(edge_limit);
 	return result;
 
 def getTopicTree(node, year, condition):
@@ -1005,9 +1017,9 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			print(year);
 			globalyear = year;
 			condition = {}
-			condition["forward_year"] = "5";
-			condition["backward_year"] = "5";
-			condition["node_number"] = 5;
+			condition["forward_year"] = qs["FY"][0];
+			condition["backward_year"] = qs["BY"][0];
+			condition["node_number"] = int(qs["NN"][0]);
 			result = getTopicTree(node, year, condition);	
 			out = {}
 			out["tree"] = json.dumps(result["tree"]);
@@ -1023,10 +1035,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 		if req == 'AuthorTree':
 			author = qs['GC_NODE'][0];
 			condition = {}
-			condition["start"] = "1994";
-			condition["end"] = "2004";
-			condition["node_limit"] = 10;
-			condition["edge_limit"] = 10;
+			condition["start"] = qs['SY'][0];
+			condition["end"] = qs['EY'][0];
+			condition["node_limit"] = int(qs['NL'][0]);
+			condition["edge_limit"] = int(qs['EL'][0]);
 			result = getAuthorTree(author, condition, authordb);
 			out = {}
 			out["tree"] = json.dumps(result["tree"]);

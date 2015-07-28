@@ -498,7 +498,7 @@ var GC = {
       .attr("y", (padding / 2))
       .attr("text-anchor", "middle")  
       .style("font-size", "16px") 
-      .text("the number of paper vs year");
+      .text("the number of papers vs year");
 
       gx.xScale = d3.scale.linear()
         .domain([0,gx.timedata.length-1])
@@ -578,7 +578,7 @@ var GC = {
       .attr("y", (padding / 2))
       .attr("text-anchor", "middle")  
       .style("font-size", "12px") 
-      .text("the rate to dataset of paper number vs years");
+      .text("the papers number's rate to whole dataset vs years");
 
       gx.xScaler0 = d3.scale.linear()
         .domain([0,gx.timedatar0.length-1])
@@ -655,7 +655,7 @@ var GC = {
       .attr("y", (padding / 2))
       .attr("text-anchor", "middle")  
       .style("font-size", "12px") 
-      .text("the rate to parent of paper number vs years");
+      .text("the papers number's rate to parent vs years");
       gx.xScalerp = d3.scale.linear()
         .domain([0,gx.timedatarp.length-1])
         .range([padding,tw-padding]);

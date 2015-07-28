@@ -19,29 +19,51 @@
   	  </div>
       <!-- The right page is the side bar -->
       <div id='right-page'>
-        <div id='search-box'>
-          <span class='text'><h3>Search Words :</h3>  </span>       
-          <input id = 'search-word'></input>
-          <button onClick="GC.Node.search();">search</button>
+        <div id='search-topic-box'>
+          <span class='text'><h2>Topic's Evolution :</h2>  </span>   
+          <span class='text'>  I want to know the evolution process of  </span> 
+          <input id = 'search-word' value = 'svm'></input>
+          <p>
+          <span class='text'> in </span>
+          <input id = 'search-year' class = 'year-search' value = '1999'></input>
+          <span class='text'> year. </span>
+          <p>
+          <span class='text'> I want to see evolution of it </span>
+          <p>
+          <span class='text'> forward </span>
+          <input id = 'search-forward-year' class = 'year-search' value = '5'></input>
+          <span class='text'> years and backward </span>
+          <input id = 'search-backward-year' class = 'year-search' value = '5'></input>
+          <span class='text'> years. </span>
+          <p>
+          <span class='text'> And see at least</span>
+          <input id = 'search-node-number' class = 'year-search' value = '5'></input>
+          <span class='text'> different nodes in each side. </span>
+          <p>
+          <button onClick="GC.Node.topic_search();">search</button>
         </div>
-        <p>
-        <div id='set-year-box'>
-          <span class='text'>set years:</span>
-          <input id = 'search-year' placeholder="not necessary"></input>
-          <button onClick="GC.Node.set_new_year();">set</button>
+        <div id='search-author-box'>
+          <span class='text'><h2>Author's Focus :</h2>  </span>   
+          <span class='text'>  I want to know the interest of the author-</span> 
+          <input id = 'search-author' value = 'yiming'></input>
+          <p>
+          <span class='text'> I want to see his/her interest </span>
+          <p>
+          <span class='text'> from </span>
+          <input id = 'search-start-year' class = 'year-search' value = '1994'></input>
+          <span class='text'> year to </span>
+          <input id = 'search-end-year' class = 'year-search' value = '2004'></input>
+          <span class='text'> year. </span>
+          <p>
+          <span class='text'> And see at least</span>
+          <input id = 'search-author-node-number' class = 'year-search' value = '10'></input>
+          <span class='text'> different nodes and</span>
+          <input id = 'search-author-edge-number' class = 'year-search' value = '10'></input>
+          <span class='text'> edges.</span>
+          <p>
+          <button onClick="GC.Node.author_search();">search</button>
         </div>
-        <div id='wordbox'></div>
-        <div id='rateto0box'></div>
-	      <div id='ratetoparentbox'></div>
-        <div id='wordSeriesbox'>
-          <form autocomplete='off' action =''>
-          <span class='text'><h3>Choose Word :</h3>  </span>
-          <select id='wordselect' onchange="GC.Node.showWord(this.options[selectedIndex].value);">
-          </select>      
-        </form>
       </div>
-      <div id = 'wordseriesgraphbox'></div>
-        </div>
     </div>
 
   </body>

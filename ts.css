@@ -157,6 +157,11 @@ text {
     pointer-events: none;
 }
 
+
+.year-search{
+    width: 30px;
+}
+
 /* Specific to RCV1 */
 
 .headline {
