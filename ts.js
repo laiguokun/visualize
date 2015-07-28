@@ -13,7 +13,7 @@ var GC = {
   /* Stores the name of the dataset */
   datakey : "csxml" , 
 
-  showState : "author",
+  showState : "topic",
 
   /* The function that should be called first , load the database 
    * and renders the the root node i.e. node 0 
@@ -27,7 +27,7 @@ var GC = {
         start = tmp[1].split("=")[1];
     if (start != 0)
       GC.Node.search_word(start);
-    GC.Node.search_author("yiming");
+//    GC.Node.search_author("yiming");
   },
 
   /*********************************************************************
@@ -217,7 +217,7 @@ var GC = {
       Node.relateSet = new Array();
       if (data6.length > 0)
       {
-        for (var i = 0; i < 4; i++)      
+        for (var i = 0; i < Math.min(4,data.length); i++)      
         {
           Node.relateSet[i] = data6[i];
           Node.relateSet[i].index = i;
@@ -326,7 +326,7 @@ var GC = {
       (function setup_graphics(){
         //initialize the tree
         var w = document.documentElement.clientWidth*0.6;
-        var h = document.documentElement.clientHeight*0.9;
+        var h = document.documentElement.clientHeight*1.5;
         gx.tree = d3.layout.tree()
         .size([w-2*wmargin, h-2*hmargin]);
 
@@ -988,7 +988,7 @@ var GC = {
       gx.convert = function(nodes)
       {
         var w = document.documentElement.clientWidth*0.95*0.6 - 2 * wmargin;
-        var h = document.documentElement.clientHeight*0.9 - 2 * hmargin;
+        var h = document.documentElement.clientHeight*1.5 - 2 * hmargin;
         var index = parseInt(Node.year) - 1994;
         var rootnode = null;
         for (var i = 0; i < nodes.length; i++)
@@ -1013,7 +1013,7 @@ var GC = {
       gx.getnodes = function(root)
       {
         var w = document.documentElement.clientWidth*0.95*0.6 - 2 * wmargin;
-        var h = document.documentElement.clientHeight*0.9 - 2 * hmargin;
+        var h = document.documentElement.clientHeight*1.5 - 2 * hmargin;
         var hinter = h/11;
         var cnt = new Array();
         var sum = new Array();
@@ -1040,6 +1040,8 @@ var GC = {
           tmp.node = node;
           tmp.year = year;
           tmp.desc = root[i].desc;
+          tmp.keyw = root[i].keyw;
+          tmp.diff = root[i].diff;
           gx.nodesmap[root[i].node] = res.length;
           cnt[year] += 1;
           res.push(tmp);
@@ -1057,6 +1059,12 @@ var GC = {
           var tmp = new Object();
           tmp.source = gx.nodes[gx.nodesmap[edge[i].source]];
           tmp.target = gx.nodes[gx.nodesmap[edge[i].target]];
+          var yearA = tmp.source.year;
+          var yearB = tmp.target.year;
+          if (parseInt(yearA) < parseInt(yearB))
+            gx.nodes[gx.nodesmap[edge[i].source]].children = 1;
+          else
+            gx.nodes[gx.nodesmap[edge[i].target]].children = 1;
           tmp.rank = edge[i].rank;
           tmp.idadd = 1;
           res.push(tmp);
@@ -1068,7 +1076,7 @@ var GC = {
       {
         gx.root = root;
         var w = document.documentElement.clientWidth*0.95*0.6 - 2 *wmargin;
-        var h = document.documentElement.clientHeight*0.9 - 2 * hmargin;
+        var h = document.documentElement.clientHeight*1.5- 2 * hmargin;
         var duration = 750;
         gx.cnt = 0;
         gx.treesvg.selectAll("*").remove();
@@ -1076,7 +1084,7 @@ var GC = {
         root.y0 = 0;
         if (GC.showState == "topic")
         {
-          gx.nodes = gx.tree.nodes(gx.root).reverse();
+/*          gx.nodes = gx.tree.nodes(gx.root).reverse();
           gx.convert(gx.nodes);
           //insert relate topic
           var winter = w / 5;
@@ -1087,7 +1095,9 @@ var GC = {
             Node.relateSet[i].y = root.y0;
             gx.nodes.push(Node.relateSet[i]);
           }
-          gx.links = gx.tree.links(gx.nodes);
+          gx.links = gx.tree.links(gx.nodes);*/
+          gx.nodes = gx.getnodes(root);
+          gx.links = gx.getlinks();
         }
         if (GC.showState == "author")
         {
@@ -1100,7 +1110,7 @@ var GC = {
                       .attr("class","node")
                       .attr("transform", function(d) {return "translate(" + root.x0 + "," + root.y0 + ")";})
                       .on("click", function(d){
-                        GC.Node.updateAll(d.topic, d.year)
+                        GC.Node.updateAll(d.node, d.year)
                       });
         gx.nodeEnter.append("circle")
         .attr("r", function(d){
@@ -1117,22 +1127,27 @@ var GC = {
         .append("title").text(function(d){ return d.desc.join(", ")});
         gx.nodeEnter.append("text")
         .attr("y", function(d){ 
-          if (d.mark == 0)
-            return 0;
-          if (d.mark == 1) 
-          {
-            return d.children ? -20:20;
-          }
-          else
-          {
-            return d.children ? 20:-20;
-          }
+          return d.children ? -50:30;
         }
         )
         .attr("dy",".35em")
         .attr("text-anchor", function(d){return "middle"})
-        .text(function(d){return d.desc[0]})
-        .style("fill-opacity",1e-6);              
+        .text(function(d){return d.keyw.join(' ')})
+        .style("fill-opacity",1e-6);  
+
+        var insertLinebreaks = function (d) {
+          var el = d3.select(this);
+          var words = d.keyw;
+          el.text('');
+
+          for (var i = 0; i < words.length; i++) {
+              var tspan = el.append('tspan').text(words[i]);
+              if (i > 0)
+                  tspan.attr('x', 0).attr('dy', '15');
+          }
+        };
+
+        gx.nodeEnter.selectAll("text").each(insertLinebreaks);
         gx.nodeEnter
         .append("title").text(function(d){ return d.desc.join(", ")});    
         gx.nodeEnter.append("text")
@@ -1157,14 +1172,17 @@ var GC = {
           return gx.diagonal({source: o, target: o});
         })
         .on("click", function(d) { 
-          window.open("http://bonda.lti.cs.cmu.edu:8011/compare.html&GC_NODEA="
+          window.open("http://bonda.lti.cs.cmu.edu:8007/compare.html&GC_NODEA="
            + d.source.node + "&GC_NODEB=" + d.target.node); 
         })
         .attr("stroke-width", function(d){
+          var base = 15;
+          if (GC.showState == "topic")
+            base = 10;
           if (d.isadd == 0)
-            return 15 * d.target.rank;
+              return base * d.target.rank;
           else
-            return 15 * d.rank;
+            return base * d.rank;
         });
     /*
         .attr("xlink:href", function(d){

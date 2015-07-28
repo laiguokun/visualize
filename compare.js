@@ -1065,6 +1065,13 @@ var GC = {
           if (d.mark == 1) return 20;
           else return 7;
         })
+        .style("stroke", function(d)
+        {
+          if (d.nodeId == Node.keyA || d.nodeId == Node.keyB)
+            return "red";
+          else
+            return "steelblue";
+        })
         .style("fill", function(d){
           if (d.set == 1) return "blue";
           if (d.set == 2) return "purple";

@@ -41,7 +41,7 @@ circle {
 
 .node circle {
     fill: #fff;
-    stroke: steelblue;
+/*    stroke: steelblue;*/
     stroke-width: 3px;
 }
 

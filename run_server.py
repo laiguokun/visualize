@@ -12,6 +12,7 @@ import gzip
 import json
 import random;
 import math;
+import heapq;
 # Valid requests are GC?GC_REQ=[content|hierarchy|children]
 #											&GC_DATASET=dataset
 #											&[GC_NODE=node]
@@ -321,10 +322,15 @@ def build_tstree(node,ts, r0db):
 			diff = float(data[tmp["year"]]) - float(data[str(int(tmp["year"]) -2 )]);
 	diff *= 10;
 	tmp["diff"] = math.exp(diff)/(1+ math.exp(diff));
-	if (not "desc" in dataset[tmp["topic"]]):
-		tmp["desc"] = ["root"];
-	else:
-		tmp["desc"] = dataset[tmp["topic"]]["desc"];
+	value = json.loads(wsdb.Get(node));
+	tmp["desc"] = value["desc"];
+	tmp["keyw"] = []
+	for i in range(3):
+		tmp["keyw"].append(value["keyw"][i][0]);
+#	if (not "desc" in dataset[tmp["topic"]]):
+#		tmp["desc"] = ["root"];
+#	else:
+#		tmp["desc"] = dataset[tmp["topic"]]["desc"];
 	if (len(ts[node]["children"]) != 0):
 		tmp["children"] = [];
 		for son in ts[node]["children"]:
@@ -369,10 +375,19 @@ def relate_set(data, year, r0db):
 		tmp["year"] = year;
 		value = r0db.Get(tmp["topic"]);
 		ratedata = json.loads(value);
+		print(node+ "_" + year);
+		try:
+			value = json.loads(wsdb.Get(node + "_" + year));
+		except KeyError:
+			continue;
+
 		if (not "desc" in dataset[tmp["topic"]]):
 			tmp["desc"] = ["root"];
 		else:
 			tmp["desc"] = dataset[tmp["topic"]]["desc"];
+		tmp["keyw"] = []
+		for i in range(3):
+			tmp["keyw"].append(value["keyw"][i][0]);
 		diff = 0;
 		if (tmp["year"] == "1995"):
 			diff = float(ratedata["1995"]) - float(ratedata["1994"]);
@@ -458,7 +473,9 @@ def getAuthorTree(author, condition,db):
 		tmp["node"] = res[i][0];
 		value = json.loads(wsdb.Get(res[i][0]));
 		tmp["desc"] = value["desc"];
-		tmp["keyw"] = value["keyw"];
+		tmp["keyw"] = []
+		for i in range(3):
+			tmp["keyw"].append(value["keyw"][i][0]);
 		result["tree"].append(tmp);
 	node_num = len(result["tree"]);
 	candid = {};
@@ -489,7 +506,101 @@ def getAuthorTree(author, condition,db):
 		i += 1;
 	return result;
 
+def getTopicTree(node, year, condition):
+	fw_year = condition["forward_year"];
+	bk_year = condition["backward_year"];
+	right = str(min(2004, int(year) + int(fw_year)));
+	left = str(max(1994, int(year) - int(bk_year)));
+	number = condition["node_number"];
+	heap = []
+	target = {}
+	nodes1 = {}
+	edges1 = []
+	nodes2 = {}
+	edges2 = []
+	value = json.loads(relatedb.Get(node + "_" + year))
+	for item in value["next"]:
+		index = node + "_" + year + "-" + item[0] + "_" + str(int(year) + 1);
+		heapq.heappush(heap, (1-float(item[1]), index));
+	while (len(target) < number):
+		item = heapq.heappop(heap);
+		nodeA = item[1].split('-')[0];
+		nodeB = item[1].split('-')[1];
+		nodes1[nodeB] = True;
+		edges1.append(item);
+		yearB = nodeB.split('_')[1];
+		topic = nodeB.split('_')[0];
+		if (not topic in target):
+			target[topic] = True;
+		if (yearB == right):
+			continue;
+		value = json.loads(relatedb.Get(nodeB))
+		for item in value["next"]:
+			index = nodeB  + "-" + item[0] + "_" + str(int(yearB) + 1);
+			heapq.heappush(heap, (1 - float(item[1]), index));
 
+	heap = [];
+	target = {};
+	value = json.loads(relatedb.Get(node + "_" + year))
+	for item in value["pre"]:
+		index = node + "_" + year + "-" + item[0] + "_" + str(int(year) - 1);
+		heapq.heappush(heap, (1-float(item[1]), index));
+	while (len(target) < number):
+		item = heapq.heappop(heap);
+		nodeA = item[1].split('-')[0];
+		nodeB = item[1].split('-')[1];
+		nodes2[nodeB] = True;
+		edges2.append(item);
+		yearB = nodeB.split('_')[1];
+		topic = nodeB.split('_')[0];
+		if (not topic in target):
+			target[topic] = True;
+		if (yearB == left):
+			continue;
+		value = json.loads(relatedb.Get(nodeB))
+		for item in value["pre"]:
+			index = nodeB  + "-" + item[0] + "_" + str(int(yearB) - 1);
+			heapq.heappush(heap, (1 - float(item[1]), index));
+	nodes = []
+	nodes.append(node + "_" + year);
+	nodes.extend(nodes1.keys())
+	nodes.extend(nodes2.keys());
+	edges = edges1;
+	edges.extend(edges2);
+	result = {};
+	result["tree"] = [];
+	result["edge"] = [];
+	for item in nodes:
+		tmp = {}
+		tmp["nodeId"] = item.split('_')[0];
+		tmp["year"] = item.split('_')[1];
+		tmp["node"] = item;
+		value = json.loads(wsdb.Get(item));
+		tmp["desc"] = value["desc"];
+		tmp["keyw"] = []
+		for i in range(3):
+			tmp["keyw"].append(value["keyw"][i][0]);
+		value = rpdb.Get(tmp["nodeId"]);
+		ratedata = json.loads(value);
+		diff = 0;
+		if (tmp["year"] == "1995"):
+			diff = float(ratedata["1995"]) - float(ratedata["1994"]);
+		else:
+			if (tmp["year"] != "1994"):
+				diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -2 )]);
+		diff *= 10;
+		tmp["diff"] = math.exp(diff)/(1+ math.exp(diff));
+		result["tree"].append(tmp);
+	for item in edges:
+		index = item[1];
+		nodeA = index.split("-")[0];
+		nodeB = index.split("-")[1];
+		tmp = {}
+		tmp["source"] = nodeA;
+		tmp["target"] = nodeB;
+		tmp["rank"] = 1 - item[0];
+		result["edge"].append(tmp);
+	return result;
 
 
 
@@ -579,15 +690,14 @@ globalyear = "1994";
 #addition_edge = []
 #ts = build_time_series("11286", "2000",relatedb, addition_edge);
 #print(addition_edge);
-'''
+
 condition = {}
-condition["start"] = "1994";
-condition["end"] = "2004";
-condition["node_limit"] = 10;
-condition["edge_limit"] = 10;
-result = getAuthorTree("hartel",condition, authordb);
-print(result);
-'''
+condition["forward_year"] = "5";
+condition["backward_year"] = "5";
+condition["node_number"] = 5;
+result = getTopicTree("11286", "2003", condition);
+print(len(result["edge"]));
+
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 	def __init__(self, request, client_address, server):
@@ -894,13 +1004,16 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			print(node);
 			print(year);
 			globalyear = year;
-			addition_edge = [];
-			resultree = build_time_series(node, year, relatedb, addition_edge);
-			result = convert_time_series(resultree, year, rpdb);
+			condition = {}
+			condition["forward_year"] = "5";
+			condition["backward_year"] = "5";
+			condition["node_number"] = 5;
+			result = getTopicTree(node, year, condition);	
 			out = {}
-			out["tree"] = json.dumps(result);
-			out["relate"] = json.dumps(relate_set(relate_topic[node], year, rpdb));
-			out["addition_edge"] = json.dumps(addition_edge);
+			out["tree"] = json.dumps(result["tree"]);
+#			out["relate"] = json.dumps(relate_set(relate_topic[node], year, rpdb));
+			out["relate"] = json.dumps([]);
+			out["addition_edge"] = json.dumps(result["edge"]);
 			self.send_response(200, 'OK');
 			self.send_header('Content-tpye', 'application/json');
 			self.end_headers();
