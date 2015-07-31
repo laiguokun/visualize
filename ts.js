@@ -124,6 +124,14 @@ var GC = {
           + "&EY=" + value.ey
           + "&NL=" + value.nl
           + "&EL=" + value.el;
+    else if ( value.type == 'ReferenceTree')
+      req += "&GC_REQ=ReferenceTree&GC_NODE=" + value.node
+          + "&SY=" + value.sy
+          + "&EY=" + value.ey
+          + "&NL=" + value.nl
+          + "&EL=" + value.el;
+    else if ( value.type = "searchNodeYear")
+      req += "&GC_REQ=searchNodeYear&GC_NODE=" + value.node +"&YEAR=" + value.year;
     return req;
   } , 
 
@@ -172,7 +180,23 @@ var GC = {
     Node.topic_search = function(){
       GC.showState = "topic";
       var s = document.getElementById("search-word").value;
-      Node.search_word(s);
+      var v = document.getElementById("search-year").value;
+      if (v.length > 0)
+          Node.year = v;
+      if (s.length > 0)
+      {
+        if (v.length > 0)
+          Node.search_word(s, v);
+        else
+          Node.search_word(s, "null");
+      }
+      else
+      {
+        Node.forward = document.getElementById("search-forward-year").value;
+        Node.backward = document.getElementById("search-backward-year").value;
+        Node.node_number = document.getElementById("search-node-number").value; 
+        Node.get_tree();       
+      }
     }
     Node.author_search = function(){
       GC.showState = "author";
@@ -183,8 +207,17 @@ var GC = {
       Node.el = document.getElementById("search-author-edge-number").value;
       Node.search_author();
     }
-    Node.search_word = function(s){
-      GC.GetValueFromServer({type:"searchNode", node:s}, Node.search_node);
+    Node.reference_search = function(){
+      GC.showState = "reference";
+      Node.reference = document.getElementById("search-reference").value;
+      Node.sy = document.getElementById("search-start-year-reference").value;
+      Node.ey = document.getElementById("search-end-year-reference").value;
+      Node.nl = document.getElementById("search-reference-node-number").value;
+      Node.el = document.getElementById("search-reference-edge-number").value;
+      Node.search_reference();
+    }
+    Node.search_word = function(s, y){
+      GC.GetValueFromServer({type:"searchNodeYear", node:s, year:y}, Node.search_node);
     }   
     Node.search_node = function(s){
       var data = JSON.parse(s);
@@ -205,6 +238,11 @@ var GC = {
     {
       Node.get_tree();
     }
+    
+    Node.search_reference = function()
+    {
+      Node.get_tree();
+    }
     Node.get_tree = function()
     {
       if (GC.showState == "topic")
@@ -215,6 +253,13 @@ var GC = {
           Node.on_load_time_tree)
       if (GC.showState == "author")
         GC.GetValueFromServer({type:"AuthorGraph", node:Node.author,
+          sy:Node.sy,
+          ey:Node.ey,
+          nl:Node.nl,
+          el:Node.el}, 
+          Node.on_load_time_tree);
+      if (GC.showState == "reference");
+          GC.GetValueFromServer({type:"ReferenceTree", node:Node.reference,
           sy:Node.sy,
           ey:Node.ey,
           nl:Node.nl,
@@ -231,7 +276,7 @@ var GC = {
       Node.relateSet = new Array();
       if (data6.length > 0)
       {
-        for (var i = 0; i < Math.min(4,data.length); i++)      
+        for (var i = 0; i < Math.min(4,data6.length); i++)      
         {
           Node.relateSet[i] = data6[i];
           Node.relateSet[i].index = i;
@@ -242,10 +287,13 @@ var GC = {
 
     Node.updateAll = function(a, b)
     {
-      Node.key = a;
-      Node.year = b;
-      Node.get_tree();
-      Node.load(a);
+//      if (GC.showState == 'topic')
+      {
+        Node.key = a;
+        Node.year = b;
+        Node.get_tree();
+        Node.load(a);
+      }
     }
     Node.graphics = (function(){
 
@@ -297,6 +345,8 @@ var GC = {
       gx.relateNode = null;
       gx.relateNodeu = null;
       gx.nodesmap = null;
+      gx.min_year = null;
+      gx.max_year = null;
       /* Add a svg element to the left-page. Well, you can put this in the html
        * as well. Add 'filters' to the svg object. Currently the only filter is
        * the 'shadow' filter which appears as a 'hover' on the circles.
@@ -318,16 +368,6 @@ var GC = {
         gx.treesvg = gx.treetext
         .append("g")
         .attr("transform", "translate(" + wmargin + "," + hmargin + ")");
-        var hinter = (h - 2 * hmargin)/11;
-        for (var year = 1994; year <= 2004; year ++)
-        {
-          gx.treetext.append("text")
-          .attr("x", w - wmargin/2)
-          .attr("y", hmargin + hinter * (year-1994) + hinter/2)
-          .attr("text-anchor", "right")  
-          .style("font-size", "12px") 
-          .text(year.toString());
-        }
       }());
 
       gx.calc_new_coord = function(node, width, hinter, year_cnt)
@@ -371,7 +411,7 @@ var GC = {
       }
       gx.convert = function(nodes)
       {
-        var w = document.documentElement.clientWidth*0.95*0.6 - 2 * wmargin;
+        var w = document.documentElement.clientWidth*0.6 - 2 * wmargin;
         var h = document.documentElement.clientHeight*1.5 - 2 * hmargin;
         var index = parseInt(Node.year) - 1994;
         var rootnode = null;
@@ -398,6 +438,8 @@ var GC = {
       {
         var w = document.documentElement.clientWidth*0.95*0.6 - 2 * wmargin;
         var h = document.documentElement.clientHeight*1.5 - 2 * hmargin;
+        gx.min_year = 2004;
+        gx.max_year = 1994;
         var hinter = h/11;
         var cnt = new Array();
         var sum = new Array();
@@ -406,6 +448,10 @@ var GC = {
         for (var i = 0; i < root.length; i++)
         {
           var year = root[i].year;
+          if (parseInt(year) < gx.min_year)
+            gx.min_year = parseInt(year);
+          if (parseInt(year) > gx.max_year)
+            gx.max_year = parseInt(year);
           if (sum[year] == undefined)
           {
             cnt[year] = 0;
@@ -419,14 +465,17 @@ var GC = {
           var year = root[i].year;
           var winter = w/sum[year];
           var tmp = new Object;
-          tmp.y = (parseInt(year) - 1994) * hinter + hinter / 2;
+          tmp.y = (parseInt(year) - gx.min_year) * hinter + hinter / 2;
           tmp.x = cnt[year] * winter + winter / 2;
           tmp.node = node;
           tmp.year = year;
           tmp.desc = root[i].desc;
           tmp.keyw = root[i].keyw;
           tmp.diff = root[i].diff;
+          tmp.author = root[i].author;
+          tmp.refer = root[i].links;
           gx.nodesmap[root[i].node] = res.length;
+          tmp.relate = -1;
           cnt[year] += 1;
           res.push(tmp);
         }
@@ -459,14 +508,14 @@ var GC = {
       gx.render_tree = function(root)
       {
         gx.root = root;
-        var w = document.documentElement.clientWidth*0.95*0.6 - 2 *wmargin;
+        var w = document.documentElement.clientWidth*0.6 - 2 *wmargin;
         var h = document.documentElement.clientHeight*1.5- 2 * hmargin;
         var duration = 750;
         gx.cnt = 0;
         gx.treesvg.selectAll("*").remove();
         root.x0 = 0;
         root.y0 = 0;
-        if (GC.showState == "topic")
+        if (GC.showState == "topic" || GC.showState == "reference")
         {
 /*          gx.nodes = gx.tree.nodes(gx.root).reverse();
           gx.convert(gx.nodes);
@@ -481,6 +530,16 @@ var GC = {
           }
           gx.links = gx.tree.links(gx.nodes);*/
           gx.nodes = gx.getnodes(root);
+          var tmp = gx.nodes[gx.nodesmap[Node.key + "_" + Node.year]];
+          var winter = w/5;
+          for (var i = 0; i < Node.relateSet.length; i++)
+          {
+            if (i < 2) Node.relateSet[i].x = tmp.x - (2-i) * winter;
+            else Node.relateSet[i].x = tmp.x + (4-i) * winter;
+            Node.relateSet[i].y = tmp.y;
+            Node.relateSet[i].relate = i;
+            gx.nodes.push(Node.relateSet[i]);
+          }
           gx.links = gx.getlinks();
         }
         if (GC.showState == "author")
@@ -488,14 +547,46 @@ var GC = {
           gx.nodes = gx.getnodes(root);
           gx.links = gx.getlinks();
         }
+        //draw year
+        gx.treetext.selectAll("text").remove();
+        var hinter = (h)/11;
+        for (var year = gx.min_year; year <= gx.max_year; year ++)
+        {
+          gx.treetext.append("text")
+          .attr("x", w + wmargin/2*3)
+          .attr("y", hmargin + hinter * (year-gx.min_year) + hinter/2)
+          .attr("text-anchor", "right")  
+          .style("font-size", "12px") 
+          .text(year.toString());
+        }
+        //draw author text info
+        var tmp = gx.nodes[gx.nodesmap[Node.key + "_" + Node.year]];
+        var showauthor = document.getElementById('top-author');
+        var showrefer = document.getElementById('top-reference');
+        if (tmp != undefined)
+        {
+          showauthor.innerHTML = "<p>" + ("Top author: " + tmp.author.join(", ")) + "</p>"
+          showrefer.innerHTML = "<p>" + "Top reference" + "</p>";
+          for (var i = 0; i < tmp.refer.length; i++)
+            showrefer.innerHTML += "<p>" + tmp.refer[i] + "</p>";
+        }
+        else
+        {
+          showauthor.innerHTML = "";
+          showrefer.innerHTML = "";
+        }
+
+
         gx.node = gx.treesvg.selectAll("g.node")
                   .data(gx.nodes, function(d){return d.id || (d.id = ++gx.cnt);});
         gx.nodeEnter = gx.node.enter().append("g")
                       .attr("class","node")
                       .attr("transform", function(d) {return "translate(" + root.x0 + "," + root.y0 + ")";})
                       .on("click", function(d){
-                        GC.Node.updateAll(d.node, d.year)
-                      });
+                          Node.key = d.node;
+                          Node.year = d.year;
+                          GC.Node.updateAll(d.node, d.year)
+                      })
         gx.nodeEnter.append("circle")
         .attr("r", function(d){
           if (d.mark == 0)
@@ -507,17 +598,32 @@ var GC = {
           + "," + Math.round(255.0 * (1.0-d.diff)) +  ", 0)";
 
         })
+        .style("stroke", function(d)
+        {
+          if (d.node == Node.key && d.year == Node.year)
+            return "red";
+          else return "steelblue";
+        })
         gx.nodeEnter
         .append("title").text(function(d){ return d.desc.join(", ")});
         gx.nodeEnter.append("text")
         .attr("y", function(d){ 
+          if (d.relate != -1)
+            return -15;
           if (GC.showState == "author")
             return 30;
           return d.children ? -50:30;
         }
         )
+        .attr("text-anchor", function(d){
+          if (d.relate == -1)
+          return "middle";
+          if (d.relate <2)
+            return "end"
+          else
+            return "start"
+        })
         .attr("dy",".35em")
-        .attr("text-anchor", function(d){return "middle"})
         .text(function(d){return d.keyw.join(' ')})
         .style("fill-opacity",1e-6);  
 
@@ -528,20 +634,20 @@ var GC = {
 
           for (var i = 0; i < words.length; i++) {
               var tspan = el.append('tspan').text(words[i]);
-              if (i > 0)
-                  tspan.attr('x', 0).attr('dy', '15');
+              if  (i > 0) tspan.attr('dy', '15')
+                  if (d.relate == -1)
+                    tspan.attr('x', 0);
+                  else
+                    if (d.relate < 2)
+                      tspan.attr('x', -20);
+                    else
+                      tspan.attr('x', 20);
           }
         };
 
         gx.nodeEnter.selectAll("text").each(insertLinebreaks);
         gx.nodeEnter
         .append("title").text(function(d){ return d.desc.join(", ")});    
-        gx.nodeEnter.append("text")
-        .attr("y", -20)
-        .attr("dy",".35em")
-        .attr("text-anchor", function(d){return "middle"})
-        .text(function(d){return d.desc[0]})
-        .style("fill-opacity",1e-6);
 
         gx.nodeUpdate = gx.node.transition()
                         .duration(duration)
@@ -558,13 +664,13 @@ var GC = {
           return gx.diagonal({source: o, target: o});
         })
         .on("click", function(d) { 
-          window.open("http://bonda.lti.cs.cmu.edu:8007/compare.html&GC_NODEA="
+          window.open("http://bonda.lti.cs.cmu.edu:8003/compare.html&GC_NODEA="
            + d.source.node + "&GC_NODEB=" + d.target.node); 
         })
         .attr("stroke-width", function(d){
-          var base = 15;
+          var base = 20;
           if (GC.showState == "topic")
-            base = 10;
+            base = 15;
           if (d.isadd == 0)
               return base * d.target.rank;
           else

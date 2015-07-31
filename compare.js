@@ -24,6 +24,7 @@ var GC = {
     if (tmp.length > 1)
       if (tmp[1].split("=")[0] = "GC_NODEA")
         starta = tmp[1].split("=")[1];
+    if (tmp.length > 2)
       if (tmp[2].split("=")[0] = "GC_NODEB")
         startb = tmp[2].split("=")[1];
     if (starta != 0)
@@ -173,7 +174,7 @@ var GC = {
       Node.dataA.rt = JSON.parse(dataset[3]);//rt
       Node.dataA.ws = JSON.parse(dataset[4]);//ws
       Node.ws = Node.dataA.ws;
-      Node.graphics.render_timeLine(Node.dataA, Node.dataB, Node.keyA);
+      Node.graphics.render_timeLine(Node.dataA, Node.dataB, Node.keyA, Node.keyB);
     }    
 
     Node.searchA = function(){
@@ -243,6 +244,8 @@ var GC = {
     Node.getsubtree = function(s)
     {
       Node.tree = JSON.parse(s);
+      Node.keyA = Node.tree.nodeA;
+      Node.keyB = Node.tree.nodeB;
       Node.graphics.render_tree(Node.tree);
     }
 
@@ -375,7 +378,7 @@ var GC = {
 
         gx.treesvg = d3.select("#graph-part").append("svg")
         .attr("width", w)
-        .attr("height", h)
+        .attr("height", h*1.2)
         .append("g")
         .attr("transform", "translate(" + wmargin + "," + hmargin + ")");
 
@@ -819,8 +822,6 @@ var GC = {
         gx.timesvg.selectAll("circle")
         .data(gx.timedata.concat(gx.timedataB))
         .enter()
-        .append("a")
-        .attr("xlink:href", "http://www.google.com")
         .append("circle")
         .attr("cx", function(d,i){
           if(i>=oldData.length) return tw-padding; return gx.xScale(i % gx.timedata.length);
@@ -828,14 +829,13 @@ var GC = {
         .attr("cy",function(d,i){
           if(i>=oldData.length) return th-padding; return gx.yScale(d);
         })
-        .style("fill","#000"); 
+        .style("fill","#000")
+        .on("click", function(d, i) { 
+          window.open( gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html'); 
+        }) 
 
         gx.timesvg.selectAll("circle")
         .attr("r",5)
-        gx.timesvg.selectAll("a")
-        .attr("xlink:href", function(d,i) {
-          return gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html';
-        });      
         gx.timesvg.selectAll("circle")   
         .transition()
         .duration(_duration)
@@ -862,8 +862,6 @@ var GC = {
         gx.timesvgr0.selectAll("circle")
         .data(gx.timedatar0.concat(gx.timedatar0B))
         .enter()
-        .append("a")
-        .attr("xlink:href", "http://www.google.com")
         .append("circle")
         .attr("cx", function(d,i){
           if(i>=oldDatar0.length) return tw-padding; return gx.xScaler0(i % gx.timedata.length);
@@ -871,15 +869,13 @@ var GC = {
         .attr("cy",function(d,i){
           if(i>=oldDatar0.length) return th-padding; return gx.yScaler0(d);
         })
-        .style("fill","#000"); 
+        .style("fill","#000")
+        .on("click", function(d, i) { 
+          window.open(gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html'); 
+        })
 
         gx.timesvgr0.selectAll("circle")
-        .attr("r",5)
-
-        gx.timesvgr0.selectAll("a")
-        .attr("xlink:href", function(d,i) {
-          return gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html';
-        });      
+        .attr("r",5)    
         
         gx.timesvgr0.selectAll("circle")   
         .transition()
@@ -906,8 +902,6 @@ var GC = {
         gx.timesvgrp.selectAll("circle")
         .data(gx.timedatarp.concat(gx.timedatarpB))
         .enter()
-        .append("a")
-        .attr("xlink:href", "http://www.google.com")
         .append("circle")
         .attr("cx", function(d,i){
           if(i>=oldData.length) return tw-padding; return gx.xScalerp(i % gx.timedata.length);
@@ -915,14 +909,13 @@ var GC = {
         .attr("cy",function(d,i){
           if(i>=oldData.length) return th-padding; return gx.yScalerp(d);
         })
-        .style("fill","#000"); 
+        .style("fill","#000")
+        .on("click", function(d, i) { 
+          window.open(gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html'); 
+        })
 
         gx.timesvgrp.selectAll("circle")
-        .attr("r",5)
-        gx.timesvgrp.selectAll("a")
-        .attr("xlink:href", function(d,i) {
-          return gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html';
-        });      
+        .attr("r",5)    
         gx.timesvgrp.selectAll("circle")   
         .transition()
         .duration(_duration)
@@ -1010,8 +1003,6 @@ var GC = {
         gx.timesvgws.selectAll("circle")
         .data(gx.timedataws.concat(gx.timedatawsB))
         .enter()
-        .append("a")
-        .attr("xlink:href", "http://www.google.com")
         .append("circle")
         .attr("cx", function(d,i){
           if(i>=oldData.length) return tw-padding; return gx.xScalews(i % gx.timedata.length);
@@ -1019,14 +1010,13 @@ var GC = {
         .attr("cy",function(d,i){
           if(i>=oldData.length) return th-padding; return gx.yScalews(d);
         })
-        .style("fill","#000"); 
+        .style("fill","#000")
+        .on("click", function(d, i) { 
+          window.open(gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html'); 
+        })
 
         gx.timesvgws.selectAll("circle")
-        .attr("r",5)
-        gx.timesvgws.selectAll("a")
-        .attr("xlink:href", function(d,i) {
-          return gx.urladd[Math.floor(i / gx.timedataws.length).toString()] + (1995+(i % gx.timedataws.length)).toString() + '.html';
-        });      
+        .attr("r",5)     
         gx.timesvgws.selectAll("circle")   
         .transition()
         .duration(_duration)
@@ -1083,13 +1073,28 @@ var GC = {
         gx.nodeEnter
         .append("title").text(function(d){ return d.desc.join(", ")});
         gx.nodeEnter.append("text")
-        .attr("y", function(d){ if (d.mark == 1) return d.children ? -40:40;
+        .attr("y", function(d){ if (d.mark == 1) return d.children ? -60:40;
           else
-            return d.children ? -20:20})
+            return d.children ? -50:20})
         .attr("dy",".35em")
         .attr("text-anchor", function(d){return "middle"})
-        .text(function(d){return d.desc[0]})
+        .text(function(d){return d.desc.join(' ')})
         .style("fill-opacity",1e-6);
+
+        var insertLinebreaks = function (d) {
+          var el = d3.select(this);
+          var words = d.desc;
+          el.text('');
+
+          for (var i = 0; i < Math.min(3, words.length); i++) {
+              var tspan = el.append('tspan').text(words[i]);
+              if (i > 0)
+                  tspan.attr('x', 0).attr('dy', '15');
+          }
+        };
+
+        gx.nodeEnter.selectAll("text").each(insertLinebreaks);
+
         gx.nodeUpdate = gx.node.transition()
                         .duration(duration)
                         .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")";});

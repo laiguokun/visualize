@@ -37,6 +37,7 @@ wsdb = leveldb.LevelDB( cfg.get('main','wordSeries_leveldb_loc'));
 descdb = leveldb.LevelDB(cfg.get('main', 'desc_leveldb_loc'));
 relatedb = leveldb.LevelDB(cfg.get('main', 'relate_leveldb_loc'));
 authordb = leveldb.LevelDB(cfg.get('main', 'author_leveldb_loc'));
+referencedb = leveldb.LevelDB(cfg.get('main', 'reference_leveldb_loc'));
 
 def searchNode(query, dataset):
 	words = query.split();
@@ -68,6 +69,42 @@ def searchNode(query, dataset):
 		res = sorted(candid.items(), key=lambda x:x[1]);
 		topic = res[0][0];
 	return topic;
+
+def searchNodeYear(query, year, dataset):
+	words = query.split();
+	candid = {}
+	max_hit_time = 0;
+	topic = 0;
+	for topic in dataset.keys():
+		try:
+			value = json.loads(wsdb.Get(topic + "_" + year))
+		except KeyError:
+			continue;
+		hit_time = 0;
+		tmp = 0;
+		for word in words:
+			if (topic != '0' and (word in value["desc"])):
+				hit_time += 1;
+				tmp += 1.0/(value["desc"].index(word) + 1);
+		if (dataset[topic]["isleaf"] == 1):
+			tmp -= 1;
+		if (hit_time == max_hit_time):
+			candid[topic] = tmp;
+		if (hit_time > max_hit_time):
+			max_hit_time = hit_time;
+			candid = {};
+			candid[topic] = tmp;
+	res = sorted(candid.items(), key=lambda x:x[1], reverse = True);
+	if (len(res)>0):
+		candid = {}
+		min_value = res[0][1];
+		for item in res:
+			if (item[1] == min_value):
+				candid[item[0]] = dataset[item[0]]["depth"];
+		res = sorted(candid.items(), key=lambda x:x[1]);
+		topic = res[0][0];
+	return topic;
+
 hierarchy = {}
 
 def build_hierarchy(dataset, node):
@@ -372,19 +409,21 @@ def relate_set(data, year, r0db):
 	for node in data:
 		tmp = {};
 		tmp["topic"] = node;
+		tmp["node"] = node;
 		tmp["year"] = year;
 		value = r0db.Get(tmp["topic"]);
 		ratedata = json.loads(value);
-		print(node+ "_" + year);
+#		print(node+ "_" + year);
 		try:
 			value = json.loads(wsdb.Get(node + "_" + year));
 		except KeyError:
 			continue;
-
+		if (len(value["desc"]) < 3):
+			continue;
 		if (not "desc" in dataset[tmp["topic"]]):
 			tmp["desc"] = ["root"];
 		else:
-			tmp["desc"] = dataset[tmp["topic"]]["desc"];
+			tmp["desc"] = value["desc"];
 		tmp["keyw"] = []
 		for i in range(3):
 			tmp["keyw"].append(value["keyw"][i][0]);
@@ -400,6 +439,7 @@ def relate_set(data, year, r0db):
 	return result;	
 
 author_name = []
+reference_name = []
 
 def getSimilarity(nodeA, nodeB):
 	nodeIdA = nodeA.split('_')[0];
@@ -473,6 +513,95 @@ def getAuthorTree(author, condition,db):
 		tmp["node"] = res[i][0];
 		value = json.loads(wsdb.Get(res[i][0]));
 		tmp["desc"] = value["desc"];
+		tmp["author"] = value["author"];
+		tmp["links"] = value["links"];
+		tmp["keyw"] = []
+		for i in range(3):
+			tmp["keyw"].append(value["keyw"][i][0]);
+		value = rpdb.Get(tmp["nodeId"]);
+		ratedata = json.loads(value);
+		diff = 0;
+		if (tmp["year"] == "1995"):
+			diff = float(ratedata["1995"]) - float(ratedata["1994"]);
+		else:
+			if (tmp["year"] != "1994"):
+				diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -2 )]);
+		diff *= 10;
+		tmp["diff"] = 1 / (1+ math.exp(-diff));
+		result["tree"].append(tmp);
+	node_num = len(result["tree"]);
+	candid = {};
+	for i in range(node_num):
+		for j in range(i+1, node_num):
+			nodeA = result["tree"][i]["node"];
+			nodeB = result["tree"][j]["node"];
+			if (int(result["tree"][i]["year"]) == int(result["tree"][j]["year"])):
+				continue;
+			index = nodeA + '-' + nodeB;
+			candid[index] = getSimilarity(nodeA, nodeB);
+	res = sorted(candid.items(), key = lambda x:x[1], reverse = True);
+	i = 0;
+	edge = {};
+	while (len(result["edge"]) < edge_limit and i < len(res)):
+		index = res[i][0];
+		nodeA = index.split("-")[0];
+		nodeB = index.split("-")[1];
+		if (not connected(nodeA, nodeB, edge)):
+			tmp = {}
+			tmp["source"] = nodeA;
+			tmp["target"] = nodeB;
+			tmp["rank"] = res[i][1];
+			result["edge"].append(tmp);
+			if (not nodeA in edge):
+				edge[nodeA] = [];
+			edge[nodeA].append(nodeB);
+		i += 1;
+	print(len(result["edge"]));
+	print(edge_limit);
+	return result;
+
+
+
+
+def getReferenceTree(author, condition,db):
+	result = {};
+	result["tree"] = [];
+	result["edge"] = []
+	max_value = 0;
+	target = 0;
+	start = condition["start"];
+	end = condition["end"];
+	node_limit = condition["node_limit"];
+	edge_limit = condition["edge_limit"];
+	for name in reference_name:
+		if (author.lower()==name.lower()):
+			value = db.Get(name);
+#			print(value);
+			value = json.loads(value);
+			if (len(value)) > max_value:
+				max_value = len(value);
+				target = name;
+	print(target);
+	if (target == 0):
+		return result;
+	value = json.loads(db.Get(target));
+	candid = {}
+	for node in value.keys():
+		year = node.split('_')[1];
+		if (int(year) < int(start) or int(year) > int(end)):
+			continue;
+		candid[node] = value[node];
+	res = sorted(candid.items(), key = lambda x:x[1]);
+	for i in range(min(node_limit, len(res))):
+		tmp = {}
+		tmp["nodeId"] = res[i][0].split('_')[0];
+		tmp["rank"] = res[i][1];
+		tmp["year"] = res[i][0].split('_')[1];
+		tmp["node"] = res[i][0];
+		value = json.loads(wsdb.Get(res[i][0]));
+		tmp["desc"] = value["desc"];
+		tmp["author"] = value["author"];
+		tmp["links"] = value["links"];
 		tmp["keyw"] = []
 		for i in range(3):
 			tmp["keyw"].append(value["keyw"][i][0]);
@@ -531,10 +660,11 @@ def getTopicTree(node, year, condition):
 	nodes2 = {}
 	edges2 = []
 	value = json.loads(relatedb.Get(node + "_" + year))
-	for item in value["next"]:
-		index = node + "_" + year + "-" + item[0] + "_" + str(int(year) + 1);
-		heapq.heappush(heap, (1-float(item[1]), index));
-	while (len(target) < number):
+	if ("next" in value):
+		for item in value["next"]:
+			index = node + "_" + year + "-" + item[0] + "_" + str(int(year) + 1);
+			heapq.heappush(heap, (1-float(item[1]), index));
+	while (len(target) < number and year != "2004"):
 		item = heapq.heappop(heap);
 		nodeA = item[1].split('-')[0];
 		nodeB = item[1].split('-')[1];
@@ -554,10 +684,11 @@ def getTopicTree(node, year, condition):
 	heap = [];
 	target = {};
 	value = json.loads(relatedb.Get(node + "_" + year))
-	for item in value["pre"]:
-		index = node + "_" + year + "-" + item[0] + "_" + str(int(year) - 1);
-		heapq.heappush(heap, (1-float(item[1]), index));
-	while (len(target) < number):
+	if ("pre" in value):
+		for item in value["pre"]:
+			index = node + "_" + year + "-" + item[0] + "_" + str(int(year) - 1);
+			heapq.heappush(heap, (1-float(item[1]), index));
+	while (len(target) < number and year != "1994"):
 		item = heapq.heappop(heap);
 		nodeA = item[1].split('-')[0];
 		nodeB = item[1].split('-')[1];
@@ -589,6 +720,8 @@ def getTopicTree(node, year, condition):
 		tmp["node"] = item;
 		value = json.loads(wsdb.Get(item));
 		tmp["desc"] = value["desc"];
+		tmp["author"] = value["author"];
+		tmp["links"] = value["links"];
 		tmp["keyw"] = []
 		for i in range(3):
 			tmp["keyw"].append(value["keyw"][i][0]);
@@ -644,6 +777,9 @@ for k in descdb.RangeIter():
 
 for k in authordb.RangeIter():
 	author_name.append(k[0]);
+
+for k in referencedb.RangeIter():
+	reference_name.append(k[0]);
 
 #print(author_name);
 '''
@@ -702,14 +838,16 @@ globalyear = "1994";
 #addition_edge = []
 #ts = build_time_series("11286", "2000",relatedb, addition_edge);
 #print(addition_edge);
-
+'''
+reference = "TCP-traffic-is-multifractal:-a-numerical-study.";
 condition = {}
-condition["forward_year"] = "5";
-condition["backward_year"] = "5";
-condition["node_number"] = 5;
-result = getTopicTree("11286", "2003", condition);
-print(len(result["edge"]));
-
+condition["start"] = "1994";
+condition["end"] = "2004";
+condition["node_limit"] = 7;
+condition["edge_limit"] = 7;
+result = getReferenceTree(reference, condition, referencedb);
+print(result);
+'''
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 	def __init__(self, request, client_address, server):
@@ -940,6 +1078,31 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			globalyear = default_year[node];
 			self.wfile.write(bytes(json.dumps(data)));
 			self.wfile.flush();
+
+		if req == 'searchNodeYear':
+			global globalyear;
+			if (qs['GC_NODE'][0].isdigit()):
+				node = qs['GC_NODE'][0];
+			else:
+				year = qs['YEAR'][0];
+				if (year == "null"):
+					node = searchNode(qs['GC_NODE'][0], dataset);
+				else:
+					node = searchNodeYear(qs['GC_NODE'][0], year, dataset);
+			relate = {}
+			if (qs['GC_NODE'][0] in relate_word):
+				relate = relate_word[qs['GC_NODE'][0]];
+			self.send_response(200, 'OK');
+			self.send_header('Content-type', 'application/json');
+			self.end_headers();
+			data = {}
+			data["result"] = node;
+			data["relate"] = relate;
+			data["year"] = default_year[node];
+			globalyear = default_year[node];
+			self.wfile.write(bytes(json.dumps(data)));
+			self.wfile.flush();
+
 		if req == 'buildsubtree':
 			print(qs);
 			nodeA = qs['GC_NODE'][0].split(' ')[0];
@@ -982,6 +1145,8 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				nodeB = searchNode(wordB,dataset);
 			mark = subtree_AandB(nodeA, nodeB)
 			result = convert_tree(resultree, L1, L2, mark);
+			result["nodeA"] = nodeA;
+			result["nodeB"] = nodeB;
 #			print(L1);
 #			print(L2);
 #			print(resultree);
@@ -1023,8 +1188,8 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			result = getTopicTree(node, year, condition);	
 			out = {}
 			out["tree"] = json.dumps(result["tree"]);
-#			out["relate"] = json.dumps(relate_set(relate_topic[node], year, rpdb));
-			out["relate"] = json.dumps([]);
+			out["relate"] = json.dumps(relate_set(relate_topic[node], year, rpdb));
+#			out["relate"] = json.dumps([]);
 			out["addition_edge"] = json.dumps(result["edge"]);
 			self.send_response(200, 'OK');
 			self.send_header('Content-tpye', 'application/json');
@@ -1048,7 +1213,25 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			self.send_header('Content-tpye', 'application/json');
 			self.end_headers();
 			self.wfile.write(bytes(json.dumps(out)));
-			self.wfile.flush();				
+			self.wfile.flush();			
+
+		if req == 'ReferenceTree':
+			reference = qs['GC_NODE'][0];
+			condition = {}
+			condition["start"] = qs['SY'][0];
+			condition["end"] = qs['EY'][0];
+			condition["node_limit"] = int(qs['NL'][0]);
+			condition["edge_limit"] = int(qs['EL'][0]);
+			result = getReferenceTree(reference, condition, referencedb);
+			out = {}
+			out["tree"] = json.dumps(result["tree"]);
+			out["relate"] = json.dumps([]);
+			out["addition_edge"] = json.dumps(result["edge"]);
+			self.send_response(200, 'OK');
+			self.send_header('Content-tpye', 'application/json');
+			self.end_headers();
+			self.wfile.write(bytes(json.dumps(out)));
+			self.wfile.flush();		
 
 
 	# Serves the value of the key

@@ -31,9 +31,9 @@
           <span class='text'> I want to see evolution of it </span>
           <p>
           <span class='text'> forward </span>
-          <input id = 'search-forward-year' class = 'year-search' value = '5'></input>
+          <input id = 'search-forward-year' class = 'year-search' value = '3'></input>
           <span class='text'> years and backward </span>
-          <input id = 'search-backward-year' class = 'year-search' value = '5'></input>
+          <input id = 'search-backward-year' class = 'year-search' value = '3'></input>
           <span class='text'> years. </span>
           <p>
           <span class='text'> And see at least</span>
@@ -48,7 +48,6 @@
           <input id = 'search-author' value = 'yiming'></input>
           <p>
           <span class='text'> I want to see his/her interest </span>
-          <p>
           <span class='text'> from </span>
           <input id = 'search-start-year' class = 'year-search' value = '1994'></input>
           <span class='text'> year to </span>
@@ -56,13 +55,35 @@
           <span class='text'> year. </span>
           <p>
           <span class='text'> And see at least</span>
-          <input id = 'search-author-node-number' class = 'year-search' value = '10'></input>
+          <input id = 'search-author-node-number' class = 'year-search' value = '7'></input>
           <span class='text'> different nodes and</span>
-          <input id = 'search-author-edge-number' class = 'year-search' value = '10'></input>
+          <input id = 'search-author-edge-number' class = 'year-search' value = '7'></input>
           <span class='text'> edges.</span>
           <p>
           <button onClick="GC.Node.author_search();">search</button>
         </div>
+        <div id='search-reference-box'>
+          <span class='text'><h2>Reference search:</h2>  </span>   
+          <span class='text'>  I want to know the topic related to</span> 
+          <input id = 'search-reference' value = ''></input>
+          <p>
+          <span class='text'> I want to show the info </span>
+          <span class='text'> from </span>
+          <input id = 'search-start-year-reference' class = 'year-search' value = '1994'></input>
+          <span class='text'> year to </span>
+          <input id = 'search-end-year-reference' class = 'year-search' value = '2004'></input>
+          <span class='text'> year. </span>
+          <p>
+          <span class='text'> And see at least</span>
+          <input id = 'search-reference-node-number' class = 'year-search' value = '7'></input>
+          <span class='text'> different nodes and</span>
+          <input id = 'search-reference-edge-number' class = 'year-search' value = '7'></input>
+          <span class='text'> edges.</span>
+          <p>
+          <button onClick="GC.Node.reference_search();">search</button>
+        </div>
+        <div id = "top-author"></div>
+        <div id = "top-reference"></div>
       </div>
     </div>
 

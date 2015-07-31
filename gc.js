@@ -441,7 +441,6 @@ var GC = {
       gx.yBarws = null;
       gx.linews = null;
       gx.pathws = null;
-
       /* Add a svg element to the left-page. Well, you can put this in the html
        * as well. Add 'filters' to the svg object. Currently the only filter is
        * the 'shadow' filter which appears as a 'hover' on the circles.
@@ -578,7 +577,7 @@ var GC = {
       .attr("y", (padding / 2))
       .attr("text-anchor", "middle")  
       .style("font-size", "12px") 
-      .text("the papers number's rate to whole dataset vs years");
+      .text("the ratio of the papers number's to whole dataset vs years");
 
       gx.xScaler0 = d3.scale.linear()
         .domain([0,gx.timedatar0.length-1])
@@ -655,7 +654,7 @@ var GC = {
       .attr("y", (padding / 2))
       .attr("text-anchor", "middle")  
       .style("font-size", "12px") 
-      .text("the papers number's rate to parent vs years");
+      .text("the ratio of the papers number's to parent vs years");
       gx.xScalerp = d3.scale.linear()
         .domain([0,gx.timedatarp.length-1])
         .range([padding,tw-padding]);
@@ -949,8 +948,6 @@ var GC = {
         gx.timesvg.selectAll("circle")
         .data(gx.timedata)
         .enter()
-        .append("a")
-        .attr("xlink:href", "http://www.google.com")
         .append("circle")
         .attr("cx", function(d,i){
           if(i>=oldData.length) return tw-padding; else return gx.xScale(i);
@@ -958,6 +955,11 @@ var GC = {
         .attr("cy",function(d,i){
           if(i>=oldData.length) return th-padding; else return gx.yScale(d);
         })  
+        .on("click", function(d, i) { 
+          var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
+          urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
+          window.open(urltmp + (1995+i).toString() + '.html'); 
+        })
         gx.timesvg.selectAll("circle")
         .attr("r",5)
         .attr("fill","#09F");
@@ -968,11 +970,6 @@ var GC = {
         gx.yScale.domain([0,d3.max(gx.timedata)]);       
         gx.yBar.transition().duration(_duration).call(gx.yAxis);
         gx.path.transition().duration(_duration).attr("d",gx.line(gx.timedata));
-        //重绘4圆点 
-        var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
-        gx.timesvg.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
         gx.timesvg.selectAll("circle")   
         .transition()
         .duration(_duration)
@@ -989,8 +986,6 @@ var GC = {
         gx.timesvgr0.selectAll("circle")
         .data(gx.timedatar0)
         .enter()
-        .append("a")
-        .attr("xlink:href", "http://www.google.com")
         .append("circle")
         .attr("cx", function(d,i){
           if(i>=oldData.length) return tw-padding; else return gx.xScale(i);
@@ -998,6 +993,11 @@ var GC = {
         .attr("cy",function(d,i){
           if(i>=oldData.length) return th-padding; else return gx.yScale(d);
         })  
+        .on("click", function(d, i) { 
+          var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
+          urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
+          window.open(urltmp + (1995+i).toString() + '.html'); 
+        })
         gx.timesvgr0.selectAll("circle")
         .attr("r",5)
         .attr("fill","#09F");
@@ -1009,10 +1009,6 @@ var GC = {
         gx.yBarr0.transition().duration(_duration).call(gx.yAxisr0);
         gx.pathr0.transition().duration(_duration).attr("d",gx.liner0(gx.timedatar0));
         //重绘4圆点 
-        var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
-        gx.timesvgr0.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
         gx.timesvgr0.selectAll("circle")   
         .transition()
         .duration(_duration)
@@ -1029,8 +1025,6 @@ var GC = {
         gx.timesvgrp.selectAll("circle")
         .data(gx.timedatarp)
         .enter()
-        .append("a")
-        .attr("xlink:href", "http://www.google.com")
         .append("circle")
         .attr("cx", function(d,i){
           if(i>=oldData.length) return tw-padding; else return gx.xScalerp(i);
@@ -1038,6 +1032,11 @@ var GC = {
         .attr("cy",function(d,i){
           if(i>=oldData.length) return th-padding; else return gx.yScalerp(d);
         })  
+        .on("click", function(d, i) { 
+          var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
+          urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
+          window.open(urltmp + (1995+i).toString() + '.html'); 
+        })
         gx.timesvgrp.selectAll("circle")
         .attr("r",5)
         .attr("fill","#09F");
@@ -1049,10 +1048,6 @@ var GC = {
         gx.yBarrp.transition().duration(_duration).call(gx.yAxisrp);
         gx.pathrp.transition().duration(_duration).attr("d",gx.linerp(gx.timedatarp));
         //重绘4圆点 
-        var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
-        gx.timesvgrp.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
         gx.timesvgrp.selectAll("circle")   
         .transition()
         .duration(_duration)
@@ -1136,15 +1131,18 @@ var GC = {
         gx.timesvgws.selectAll("circle")
         .data(gx.timedataws)
         .enter()
-        .append("a")
-        .attr("xlink:href", "http://www.google.com")
         .append("circle")
         .attr("cx", function(d,i){
           if(i>=oldData.length) return tw-padding; else return gx.xScale(i);
         })  
         .attr("cy",function(d,i){
           if(i>=oldData.length) return th-padding; else return gx.yScale(d);
-        })  
+        })
+        .on("click", function(d, i) { 
+          var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
+          urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
+          window.open(urltmp + (1995+i).toString() + '.html'); 
+        })
         gx.timesvgws.selectAll("circle")
         .attr("r",5)
         .attr("fill","#09F");
@@ -1156,10 +1154,6 @@ var GC = {
         gx.yBarws.transition().duration(_duration).call(gx.yAxisws);
         gx.pathws.transition().duration(_duration).attr("d",gx.linews(gx.timedataws));
         //重绘4圆点 
-        var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
-        urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
-        gx.timesvgws.selectAll("a")
-        .attr("xlink:href", function(d,i) {return urltmp + (1995+i).toString() + '.html';});
         gx.timesvgws.selectAll("circle")   
         .transition()
         .duration(_duration)
