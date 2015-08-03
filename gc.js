@@ -17,14 +17,28 @@ var GC = {
    * and renders the the root node i.e. node 0 
    */
 
+  min_year_dataset : null,
+  max_year_dataset : null,
+
   load : function( _dkey ) {
     GC.datakey = _dkey;
+    GC.load_year_info();
     var URL = document.URL;
     var tmp = URL.split("&");
     if (tmp.length > 1)
       if (tmp[1].split("=")[0] = "GC_NODE")
         start = tmp[1].split("=")[1];
     GC.Hierarchy.load();
+  },
+
+  load_year_info : function(){
+    GC.GetValueFromServer({type:"yearinfo"} , GC.on_load_year_info );
+  },
+
+  on_load_year_info : function(s){
+    var tmp = JSON.parse(s);
+    GC.min_year_dataset = parseInt(tmp.min_year_dataset);
+    GC.max_year_dataset = parseInt(tmp.max_year_dataset);
   },
 
   /*********************************************************************
@@ -105,6 +119,8 @@ var GC = {
       req += "&GC_REQ=searchNode&GC_NODE=" + value.node;
     else if ( value.type == "getAllWord")
       req += "&GC_REQ=getAllWord";
+    else if ( value.type == "yearinfo")
+      req += "&GC_REQ=yearinfo";
     return req;
   } , 
 
@@ -958,7 +974,7 @@ var GC = {
         .on("click", function(d, i) { 
           var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
           urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
-          window.open(urltmp + (1995+i).toString() + '.html'); 
+          window.open(urltmp + (GC.min_year_dataset+i).toString() + '.html'); 
         })
         gx.timesvg.selectAll("circle")
         .attr("r",5)
@@ -996,7 +1012,7 @@ var GC = {
         .on("click", function(d, i) { 
           var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
           urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
-          window.open(urltmp + (1995+i).toString() + '.html'); 
+          window.open(urltmp + (GC.min_year_dataset+i).toString() + '.html'); 
         })
         gx.timesvgr0.selectAll("circle")
         .attr("r",5)
@@ -1035,7 +1051,7 @@ var GC = {
         .on("click", function(d, i) { 
           var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
           urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
-          window.open(urltmp + (1995+i).toString() + '.html'); 
+          window.open(urltmp + (GC.min_year_dataset+i).toString() + '.html'); 
         })
         gx.timesvgrp.selectAll("circle")
         .attr("r",5)
@@ -1107,14 +1123,14 @@ var GC = {
         gx.timedataws = [];
         gx.xMarksws = []
         var cnt = 0;
-        for (var year = 1994; year <= 2004; year ++)
+        for (var year = GC.min_year_dataset; year <= GC.max_year_dataset; year ++)
         {
           var tmp = parseInt(data[year]);
           if (tmp == 0)
             gx.timedataws.push(0);
           else
             gx.timedataws.push(1.0/tmp);
-          if ((year-1994) % 2 ==0)
+          if ((year-GC.min_year_dataset) % 2 ==0)
           {
             gx.xMarksws.push(year);
             cnt += 1;
@@ -1141,7 +1157,7 @@ var GC = {
         .on("click", function(d, i) { 
           var urltmp = "http://bonda.lti.cs.cmu.edu/mfhdt/html/all/"
           urltmp += "node=" + Node.key.toString() + ".flat=0.time=" ;
-          window.open(urltmp + (1995+i).toString() + '.html'); 
+          window.open(urltmp + (GC.min_year_dataset+i).toString() + '.html'); 
         })
         gx.timesvgws.selectAll("circle")
         .attr("r",5)
@@ -1175,7 +1191,7 @@ var GC = {
       var nodeset = Object.keys(d3data.child_timeLine);
       for (var i = 0; i < nodeset.length; i++)
       {
-        gx.grow_rate[nodeset[i]] = 10 * (d3data.child_timeLine[nodeset[i]][2004] - d3data.child_timeLine[nodeset[i]][2002]);
+        gx.grow_rate[nodeset[i]] = 10 * (d3data.child_timeLine[nodeset[i]][GC.max_year_dataset] - d3data.child_timeLine[nodeset[i]][GC.max_year_dataset - 1]);
         gx.grow_rate[nodeset[i]] = (Math.exp(gx.grow_rate[nodeset[i]])/ (1 + Math.exp(gx.grow_rate[nodeset[i]])));
       }
 	/* Remove any previous data i.e. 'transition out' the container */

@@ -25,17 +25,19 @@ cfg = ConfigParser.ConfigParser();
 cfg.read('config.cfg');
 
 
+min_year_dataset = cfg.get('main','min_year_dataset');
+max_year_dataset = cfg.get('main','max_year_dataset');
+
 PORT = int( cfg.get('main','port') );
 PORT += random.randint(0,20);
 META_LEVELDB = leveldb.LevelDB( cfg.get('main','meta_leveldb_loc') );
 CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','content_leveldb_loc') );
 PUBMED_CONTENT_LEVELDB = leveldb.LevelDB( cfg.get('main','pubmed_content_leveldb_loc') );
-sumdb = leveldb.LevelDB( cfg.get('main','timeLine-sum_leveldb_loc'));
-r0db = leveldb.LevelDB( cfg.get('main','timeLine-rateto0_leveldb_loc'));
-rpdb = leveldb.LevelDB( cfg.get('main','timeLine-ratetop_leveldb_loc'));
+timeLinedb = leveldb.LevelDB( cfg.get('main','timeLine_leveldb_loc'));
 wsdb = leveldb.LevelDB( cfg.get('main','wordSeries_leveldb_loc'));
 descdb = leveldb.LevelDB(cfg.get('main', 'desc_leveldb_loc'));
 relatedb = leveldb.LevelDB(cfg.get('main', 'relate_leveldb_loc'));
+relatewtdb = leveldb.LevelDB(cfg.get('main', 'relate-word-topic_leveldb_loc'))
 authordb = leveldb.LevelDB(cfg.get('main', 'author_leveldb_loc'));
 referencedb = leveldb.LevelDB(cfg.get('main', 'reference_leveldb_loc'));
 
@@ -296,7 +298,7 @@ def build_time_series(node,year,relatedb, addition_edge):
 
 		now_year = next_year;
 	now_year = int(year);
-	while (now_year >=1995):
+	while (now_year >=int(min_year_dataset) + 1):
 		pre_year = now_year - 1;
 		candid = {}
 		for last_node in result[str(now_year)].keys():
@@ -343,75 +345,14 @@ def build_time_series(node,year,relatedb, addition_edge):
 		now_year = pre_year;
 	return result;
 
-def build_tstree(node,ts, r0db):
-	tmp = {};
-	tmp["topic"] = node.split("_")[0];
-	tmp["year"] = node.split("_")[1];
-	tmp["mark"] = ts[node]["mark"]
-	tmp["rank"] = ts[node]["rank"]
-	value = r0db.Get(tmp["topic"]);
-	data = json.loads(value);
-	diff = 0;
-	if (tmp["year"] == "1995"):
-		diff = float(data["1995"]) - float(data["1994"]);
-	else:
-		if (tmp["year"] != "1994"):
-			diff = float(data[tmp["year"]]) - float(data[str(int(tmp["year"]) -2 )]);
-	diff *= 10;
-	tmp["diff"] = math.exp(diff)/(1+ math.exp(diff));
-	value = json.loads(wsdb.Get(node));
-	tmp["desc"] = value["desc"];
-	tmp["keyw"] = []
-	for i in range(3):
-		tmp["keyw"].append(value["keyw"][i][0]);
-#	if (not "desc" in dataset[tmp["topic"]]):
-#		tmp["desc"] = ["root"];
-#	else:
-#		tmp["desc"] = dataset[tmp["topic"]]["desc"];
-	if (len(ts[node]["children"]) != 0):
-		tmp["children"] = [];
-		for son in ts[node]["children"]:
-			tmp["children"].append(build_tstree(son, ts, r0db));
-	return tmp;
-
-def convert_time_series(ts, root_year, r0db):
-	root = ts[root_year].keys()[0] + "_" + root_year; 
-	tmp = {}
-	tmp[root] = {};
-	tmp[root]["children"] = [];
-	tmp[root]["mark"] = 0;
-	tmp[root]["rank"] = 0;
-	for iyear in range(int(root_year) + 1, 2005):
-		year = str(iyear);
-		for node in ts[year].keys():
-			topic = node + "_" + year;
-			parent = ts[year][node]["parent"] + "_" + str(iyear - 1);
-			tmp[parent]["children"].append(topic);
-			tmp[topic] = {}
-			tmp[topic]["children"] = [];
-			tmp[topic]["mark"] = 1;
-			tmp[topic]["rank"] = ts[year][node]["rank"];
-	for iyear in range(int(root_year) - 1, 1993, -1):
-		year = str(iyear);
-		for node in ts[year].keys():
-			topic = node + "_" + year;
-			parent = ts[year][node]["parent"] + "_" + str(iyear + 1);
-			tmp[parent]["children"].append(topic);
-			tmp[topic] = {}
-			tmp[topic]["children"] = [];
-			tmp[topic]["mark"] = 2;
-			tmp[topic]["rank"] = ts[year][node]["rank"];
-	result = build_tstree(root, tmp, r0db);
-	return result;
-
-def relate_set(data, year, r0db):
+def relate_set(data, year):
 	result = []
 	for node in data:
 		tmp = {};
 		tmp["topic"] = node;
 		tmp["node"] = node;
 		tmp["year"] = year;
-		value = r0db.Get(tmp["topic"]);
+		value = timeLinedb.Get(tmp["topic"] + "_rp");
 		ratedata = json.loads(value);
 #		print(node+ "_" + year);
 		try:
@@ -428,11 +369,8 @@ def relate_set(data, year, r0db):
 		for i in range(3):
 			tmp["keyw"].append(value["keyw"][i][0]);
 		diff = 0;
-		if (tmp["year"] == "1995"):
-			diff = float(ratedata["1995"]) - float(ratedata["1994"]);
-		else:
-			if (tmp["year"] != "1994"):
-				diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -2 )]);
+		if (tmp["year"] != min_year_dataset):
+			diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -1 )]);
 		diff *= 10;
 		tmp["diff"] = math.exp(diff)/(1+ math.exp(diff));
 		result.append(tmp);
@@ -495,6 +433,7 @@ def getAuthorTree(author, condition,db):
 				max_value = len(value);
 				target = name;
 	print(target);
+	result["name"] = target
 	if (target == 0):
 		return result;
 	value = json.loads(db.Get(target));
@@ -518,14 +457,11 @@ def getAuthorTree(author, condition,db):
 		tmp["keyw"] = []
 		for i in range(3):
 			tmp["keyw"].append(value["keyw"][i][0]);
-		value = rpdb.Get(tmp["nodeId"]);
+		value = timeLinedb.Get(tmp["nodeId"]+"_rp");
 		ratedata = json.loads(value);
 		diff = 0;
-		if (tmp["year"] == "1995"):
-			diff = float(ratedata["1995"]) - float(ratedata["1994"]);
-		else:
-			if (tmp["year"] != "1994"):
-				diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -2 )]);
+		if (tmp["year"] != min_year_dataset):
+			diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -1 )]);
 		diff *= 10;
 		tmp["diff"] = 1 / (1+ math.exp(-diff));
 		result["tree"].append(tmp);
@@ -605,14 +541,11 @@ def getReferenceTree(author, condition,db):
 		tmp["keyw"] = []
 		for i in range(3):
 			tmp["keyw"].append(value["keyw"][i][0]);
-		value = rpdb.Get(tmp["nodeId"]);
+		value = timeLinedb.Get(tmp["nodeId"] + "_rp");
 		ratedata = json.loads(value);
 		diff = 0;
-		if (tmp["year"] == "1995"):
-			diff = float(ratedata["1995"]) - float(ratedata["1994"]);
-		else:
-			if (tmp["year"] != "1994"):
-				diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -2 )]);
+		if (tmp["year"] != min_year_dataset):
+			diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -1 )]);
 		diff *= 10;
 		tmp["diff"] = 1 / (1+ math.exp(-diff));
 		result["tree"].append(tmp);
@@ -650,8 +583,8 @@ def getReferenceTree(author, condition,db):
 def getTopicTree(node, year, condition):
 	fw_year = condition["forward_year"];
 	bk_year = condition["backward_year"];
-	right = str(min(2004, int(year) + int(fw_year)));
-	left = str(max(1994, int(year) - int(bk_year)));
+	right = str(min(int(max_year_dataset), int(year) + int(fw_year)));
+	left = str(max(int(min_year_dataset), int(year) - int(bk_year)));
 	number = condition["node_number"];
 	heap = []
 	target = {}
@@ -664,7 +597,7 @@ def getTopicTree(node, year, condition):
 		for item in value["next"]:
 			index = node + "_" + year + "-" + item[0] + "_" + str(int(year) + 1);
 			heapq.heappush(heap, (1-float(item[1]), index));
-	while (len(target) < number and year != "2004"):
+	while (len(target) < number and year != max_year_dataset):
 		item = heapq.heappop(heap);
 		nodeA = item[1].split('-')[0];
 		nodeB = item[1].split('-')[1];
@@ -688,7 +621,7 @@ def getTopicTree(node, year, condition):
 		for item in value["pre"]:
 			index = node + "_" + year + "-" + item[0] + "_" + str(int(year) - 1);
 			heapq.heappush(heap, (1-float(item[1]), index));
-	while (len(target) < number and year != "1994"):
+	while (len(target) < number and year != min_year_dataset):
 		item = heapq.heappop(heap);
 		nodeA = item[1].split('-')[0];
 		nodeB = item[1].split('-')[1];
@@ -725,14 +658,11 @@ def getTopicTree(node, year, condition):
 		tmp["keyw"] = []
 		for i in range(3):
 			tmp["keyw"].append(value["keyw"][i][0]);
-		value = rpdb.Get(tmp["nodeId"]);
+		value = timeLinedb.Get(tmp["nodeId"] + "_rp")
 		ratedata = json.loads(value);
 		diff = 0;
-		if (tmp["year"] == "1995"):
-			diff = float(ratedata["1995"]) - float(ratedata["1994"]);
-		else:
-			if (tmp["year"] != "1994"):
-				diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -2 )]);
+		if (tmp["year"] != min_year_dataset):
+			diff = float(ratedata[tmp["year"]]) - float(ratedata[str(int(tmp["year"]) -1 )]);
 		diff *= 10;
 		tmp["diff"] = math.exp(diff)/(1+ math.exp(diff));
 		result["tree"].append(tmp);
@@ -747,21 +677,14 @@ def getTopicTree(node, year, condition):
 		result["edge"].append(tmp);
 	return result;
 
-
-
-
-
-fin = open("relate_word.dat", "r");
 relate_word = {}
-for line in fin:
-	words = line[0:-1].split('\t');
-	relate_word[words[0]] = words[1:];
-
-fin = open("relate_topic.dat" , "r");
 relate_topic = {}
-for line in fin:
-	words = line[0:-1].split('\t');
-	relate_topic[words[0]] = words[1:];
+for k in relatewtdb.RangeIter():
+	words = k[0].split('_');
+	if (words[0] == 'word'):
+		relate_word[words[1]] = json.loads(k[1]);
+	else:
+		relate_topic[words[1]] = json.loads(k[1]);
 
 
 # Get configuration from config.cfg
@@ -781,38 +704,15 @@ for k in authordb.RangeIter():
 for k in referencedb.RangeIter():
 	reference_name.append(k[0]);
 
-#print(author_name);
-'''
-fin = open("wordSeries.dat")
-desc_year = {};
-inverse_list = {}
-for line in fin:
-	words = line[0:-1].split('\t');
-	topic = words[0];
-	word = words[1];
-	if (not topic in desc_year):
-		desc_year[topic] = {}
-	for i in range(2, len(words)):
-		year = words[i].split(':')[0];
-		if (not year in desc_year[topic]):
-			desc_year[topic][year] = [];
-		desc_year[topic][year].append(word);
-'''
-#for k in relatedb.RangeIter():
-#	topic = k[0].split('_')[0];
-#	year = k[0].split('_')[1];
-#	relateset[topic][year] = json.loads(k[1]);
-
-#print(relateset["11286"]["2000"]);
 for topic in dataset.keys():
-	value = r0db.Get(topic);
+	value = timeLinedb.Get(topic + "_r0");
 	data = json.loads(value);
 	max_value = 0;
-	max_year = "1994";
+	max_year = min_year_dataset;
 	for year in data.keys():
 		if (year == "min" or year == "max"):
 			continue;
-		if (int(year) < 1994 or int(year) > 2004):
+		if (int(year) < int(min_year_dataset) or int(year) > max_year_dataset):
 			continue;
 		if (float(data[year]) > max_value):
 			max_value = float(data[year]);
@@ -833,7 +733,7 @@ nodeA = "0";
 nodeB = "0";
 resultree = {};
 
-globalyear = "1994";
+globalyear = min_year_dataset;
 
 #addition_edge = []
 #ts = build_time_series("11286", "2000",relatedb, addition_edge);
@@ -999,7 +899,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				for child in datanode["children"]:
 					node = child["node"];
 					try:
-						valuenode = rpdb.Get(str(node));
+						valuenode = timeLinedb.Get(str(node)+"_rp");
 					except:
 						valuenode = json.dumps({});
 					tmp[node] = valuenode;
@@ -1030,15 +930,15 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			global globalyear;
 			node = qs['GC_NODE'][0];
 			try:
-				valuesum = sumdb.Get(node);
+				valuesum = timeLinedb.Get(node+"_sum");
 			except KeyError:
 				valuesum = json.dumps({});
 			try:
-				valuer0 = r0db.Get(node);
+				valuer0 = timeLinedb.Get(node+"_r0");
 			except KeyError:
 				valuer0 = json.dumps({});
 			try:
-				valuerp = rpdb.Get(node);
+				valuerp = timeLinedb.Get(node+"_rp");
 			except KeyError:
 				valuerp = json.dumps({});
 			try:
@@ -1188,7 +1088,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			result = getTopicTree(node, year, condition);	
 			out = {}
 			out["tree"] = json.dumps(result["tree"]);
-			out["relate"] = json.dumps(relate_set(relate_topic[node], year, rpdb));
+			out["relate"] = json.dumps(relate_set(relate_topic[node], year));
 #			out["relate"] = json.dumps([]);
 			out["addition_edge"] = json.dumps(result["edge"]);
 			self.send_response(200, 'OK');
@@ -1209,6 +1109,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			out["tree"] = json.dumps(result["tree"]);
 			out["relate"] = json.dumps([]);
 			out["addition_edge"] = json.dumps(result["edge"]);
+			out["name"] = result["name"];
 			self.send_response(200, 'OK');
 			self.send_header('Content-tpye', 'application/json');
 			self.end_headers();
@@ -1232,6 +1133,16 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			self.end_headers();
 			self.wfile.write(bytes(json.dumps(out)));
 			self.wfile.flush();		
+
+		if req == 'yearinfo':
+			out = {}
+			out["min_year_dataset"] =min_year_dataset;
+			out["max_year_dataset"] = max_year_dataset;
+			self.send_response(200, 'OK');
+			self.send_header('Content-tpye', 'application/json');
+			self.end_headers();
+			self.wfile.write(bytes(json.dumps(out)));
+			self.wfile.flush();				
 
 
 	# Serves the value of the key

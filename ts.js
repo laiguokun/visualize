@@ -15,11 +15,15 @@ var GC = {
 
   showState : "topic",
 
+  min_year_dataset : null,
+  max_year_dataset : null,
+
   /* The function that should be called first , load the database 
    * and renders the the root node i.e. node 0 
    */
 
   load : function() {
+    GC.load_year_info();
     var URL = document.URL;
     var tmp = URL.split("&");
     if (tmp.length > 1)
@@ -28,6 +32,16 @@ var GC = {
     if (start != 0)
       GC.Node.search_word(start);
 //    GC.Node.search_author("yiming");
+  },
+
+  load_year_info : function(){
+    GC.GetValueFromServer({type:"yearinfo"} , GC.on_load_year_info );
+  },
+
+  on_load_year_info : function(s){
+    var tmp = JSON.parse(s);
+    GC.min_year_dataset = parseInt(tmp.min_year_dataset);
+    GC.max_year_dataset = parseInt(tmp.max_year_dataset);
   },
 
   /*********************************************************************
@@ -130,8 +144,10 @@ var GC = {
           + "&EY=" + value.ey
           + "&NL=" + value.nl
           + "&EL=" + value.el;
-    else if ( value.type = "searchNodeYear")
+    else if ( value.type == "searchNodeYear")
       req += "&GC_REQ=searchNodeYear&GC_NODE=" + value.node +"&YEAR=" + value.year;
+    else if ( value.type == "yearinfo")
+      req += "&GC_REQ=yearinfo";
     return req;
   } , 
 
@@ -158,11 +174,12 @@ var GC = {
 
   Node : (function(){
     var node = null;
-    var year = 1994;
+    var year = null;
     var ws = null;
     var key = null;
     var relateSet = null;
     var addition_edge = null;
+    var author_name = null;
     var author = "hartel";
     Node.showWord = function(s)
     {
@@ -252,13 +269,15 @@ var GC = {
           nn: Node.node_number} , 
           Node.on_load_time_tree)
       if (GC.showState == "author")
+      {
         GC.GetValueFromServer({type:"AuthorGraph", node:Node.author,
           sy:Node.sy,
           ey:Node.ey,
           nl:Node.nl,
           el:Node.el}, 
           Node.on_load_time_tree);
-      if (GC.showState == "reference");
+      }
+      if (GC.showState == "reference")
           GC.GetValueFromServer({type:"ReferenceTree", node:Node.reference,
           sy:Node.sy,
           ey:Node.ey,
@@ -273,6 +292,11 @@ var GC = {
       Node.time_tree = JSON.parse(tmp.tree);
       var data6 = JSON.parse(tmp.relate);
       Node.addition_edge = JSON.parse(tmp.addition_edge);
+      if (GC.showState == 'author')
+      {
+        Node.author_name = tmp.name;
+        document.getElementById("search-author").value = (Node.author_name);
+      }
       Node.relateSet = new Array();
       if (data6.length > 0)
       {
@@ -413,7 +437,7 @@ var GC = {
       {
         var w = document.documentElement.clientWidth*0.6 - 2 * wmargin;
         var h = document.documentElement.clientHeight*1.5 - 2 * hmargin;
-        var index = parseInt(Node.year) - 1994;
+        var index = parseInt(Node.year) - GC.min_year_dataset;
         var rootnode = null;
         for (var i = 0; i < nodes.length; i++)
           if (nodes[i].depth == 0)
@@ -426,7 +450,7 @@ var GC = {
         var year_cnt = new Array();
         year_cnt[1] = new Array();
         year_cnt[2] = new Array();
-        for (var i = 1994; i <= 2004; i++)
+        for (var i = GC.min_year_dataset; i <= GC.max_year_dataset; i++)
         {
           year_cnt[1][i.toString()] = 0;
           year_cnt[2][i.toString()] = 0;
@@ -438,8 +462,8 @@ var GC = {
       {
         var w = document.documentElement.clientWidth*0.95*0.6 - 2 * wmargin;
         var h = document.documentElement.clientHeight*1.5 - 2 * hmargin;
-        gx.min_year = 2004;
-        gx.max_year = 1994;
+        gx.min_year = GC.max_year_dataset;
+        gx.max_year = GC.min_year_dataset;
         var hinter = h/11;
         var cnt = new Array();
         var sum = new Array();

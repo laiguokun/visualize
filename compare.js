@@ -16,8 +16,11 @@ var GC = {
   /* The function that should be called first , load the database 
    * and renders the the root node i.e. node 0 
    */
+  min_year_dataset : null,
+  max_year_dataset : null,
 
   load : function() {
+    GC.load_year_info();
     var URL = document.URL;
     var tmp = URL.split("&");
     var starta = 0,startb = 0;
@@ -31,6 +34,16 @@ var GC = {
       GC.Node.search_wordA(starta);
     if (startb != 0)
       GC.Node.search_wordB(startb);
+  },
+
+  load_year_info : function(){
+    GC.GetValueFromServer({type:"yearinfo"} , GC.on_load_year_info );
+  },
+
+  on_load_year_info : function(s){
+    var tmp = JSON.parse(s);
+    GC.min_year_dataset = parseInt(tmp.min_year_dataset);
+    GC.max_year_dataset = parseInt(tmp.max_year_dataset);
   },
 
   /*********************************************************************
@@ -114,6 +127,8 @@ var GC = {
       req += "&GC_REQ=buildsubtreeoftwoword&GC_NODEA=" + value.nodeA +"&GC_NODEB=" +value.nodeB;
     else if ( value.type == 'changeTreeNode')
       req += "&GC_REQ=changeTreeNode&GC_NODE=" + value.node;
+    else if ( value.type == "yearinfo")
+      req += "&GC_REQ=yearinfo";
     return req;
   } , 
 
@@ -385,7 +400,7 @@ var GC = {
 //        gx.grad = gx.treesvg.append("defs").append("linearGradient").attr("id", "grad")
 //                  .attr("x1", "0%").attr("x2", "100%").attr("y1", "0%").attr("y2", "0%");
 //        gx.grad.append("stop").attr("offset", "50%").style("stop-color", "blue");
-//        gx.grad.append("stop").attr("offset", "50%").style("stop-color", "purple");
+//        gx.grad.append("stop").attr("offset", "50%").style("stop-color", "orange");
 
         gx.timesvg = d3.select("#wordbox")
         .append("svg")
@@ -445,18 +460,16 @@ var GC = {
         
         gx.path=gx.timesvg.append("path")
           .attr("d", gx.line(gx.timedata))
-          .style("fill","#F00")
-          .style("fill","none")
+          .style("fill", "none")
           .style("stroke-width",1)
-          .style("stroke","red")
+          .style("stroke","blue")
           .style("stroke-opacity",0.9);
 
         gx.pathB=gx.timesvg.append("path")
           .attr("d",gx.line(gx.timedataB))
-          .style("fill","#00F")
-          .style("fill","none")
+          .style("fill", "none")
           .style("stroke-width",1)
-          .style("stroke","blue")
+          .style("stroke","red")
           .style("stroke-opacity",0.9);
 
         //添加系列的小圆点
@@ -533,17 +546,15 @@ var GC = {
         
         gx.pathr0 = gx.timesvgr0.append("path")
           .attr("d", gx.liner0(gx.timedatar0))
-          .style("fill","#F00")
-          .style("fill","none")
+          .style("fill", "none")
           .style("stroke-width",1)
-          .style("stroke","#F00")
+          .style("stroke","blue")
           .style("stroke-opacity",0.9);
         gx.pathr0B=gx.timesvgr0.append("path")
           .attr("d",gx.line(gx.timedatar0B))
-          .style("fill","#00F")
-          .style("fill","none")
+          .style("fill", "none")
           .style("stroke-width",1)
-          .style("stroke","blue")
+          .style("stroke","red")
           .style("stroke-opacity",0.9);
         //添加系列的小圆点
         gx.timesvgr0.selectAll("circle")
@@ -616,18 +627,16 @@ var GC = {
         
         gx.pathrp = gx.timesvgrp.append("path")
           .attr("d", gx.linerp(gx.timedatar0))
-          .style("fill","#F00")
-          .style("fill","none")
+          .style("fill", "none")
           .style("stroke-width",1)
-          .style("stroke","#F00")
+          .style("stroke","blue")
           .style("stroke-opacity",0.9);
 
         gx.pathrpB=gx.timesvgrp.append("path")
           .attr("d",gx.line(gx.timedatarpB))
-          .style("fill","#00F")
-          .style("fill","none")
+          .style("fill", "none")
           .style("stroke-width",1)
-          .style("stroke","blue")
+          .style("stroke","red")
           .style("stroke-opacity",0.9);
         //添加系列的小圆点
         gx.timesvgrp.selectAll("circle")
@@ -699,18 +708,16 @@ var GC = {
         
         gx.pathws = gx.timesvgws.append("path")
           .attr("d", gx.linews(gx.timedataws))
-          .style("fill","#F00")
-          .style("fill","none")
+          .style("fill", "none")
           .style("stroke-width",1)
-          .style("stroke","#F00")
+          .style("stroke","blue")
           .style("stroke-opacity",0.9);
 
         gx.pathwsB=gx.timesvgws.append("path")
           .attr("d",gx.linews(gx.timedatawsB))
-          .style("fill","#00F")
-          .style("fill","none")
+          .style("fill", "none")
           .style("stroke-width",1)
-          .style("stroke","blue")
+          .style("stroke","red")
           .style("stroke-opacity",0.9);
         //添加系列的小圆点
         gx.timesvgws.selectAll("circle")
@@ -743,9 +750,9 @@ var GC = {
         gx.timedataB = [];gx.timedatar0B = [];gx.timedatarpB = [];
         gx.xMarks = [];
         var cnt = 0;var l1 = 0;var l2 = 0;
-        for (var year = 1994; year <= 2004; year ++)
+        for (var year = GC.min_year_dataset; year <= GC.max_year_dataset; year ++)
         {
-          if ((year-1994) % 2 ==0)
+          if ((year-GC.min_year_dataset) % 2 ==0)
           {
             gx.xMarks.push(year);
             cnt += 1;
@@ -758,7 +765,7 @@ var GC = {
           var data = DATA_A.normal;
           var datar0 = DATA_A.r0;
           var datarp = DATA_A.rp;
-          for (var year = 1994; year <= 2004; year ++)
+          for (var year = GC.min_year_dataset; year <= GC.max_year_dataset; year ++)
           {
             gx.timedata.push(parseInt(data[year]));
             gx.timedatar0.push(parseFloat(datar0[year]));
@@ -766,7 +773,7 @@ var GC = {
           }
         }
         else
-          for (var year = 1994; year <= 2004; year ++)
+          for (var year = GC.min_year_dataset; year <= GC.max_year_dataset; year ++)
           {
             gx.timedata.push(0);
             gx.timedatar0.push(0);
@@ -777,7 +784,7 @@ var GC = {
           var dataB = DATA_B.normal;
           var datar0B = DATA_B.r0;
           var datarpB = DATA_B.rp;
-          for (var year = 1994; year <= 2004; year ++)
+          for (var year = GC.min_year_dataset; year <= GC.max_year_dataset; year ++)
           {
             gx.timedataB.push(parseInt(dataB[year]));
             gx.timedatar0B.push(parseFloat(datar0B[year]));
@@ -785,7 +792,7 @@ var GC = {
           }
         }
         else
-          for (var year = 1994; year <= 2004; year ++)
+          for (var year = GC.min_year_dataset; year <= GC.max_year_dataset; year ++)
           {
             gx.timedataB.push(0);
             gx.timedatar0B.push(0);
@@ -831,7 +838,7 @@ var GC = {
         })
         .style("fill","#000")
         .on("click", function(d, i) { 
-          window.open( gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html'); 
+          window.open( gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (GC.min_year_dataset+(i % gx.timedata.length)).toString() + '.html'); 
         }) 
 
         gx.timesvg.selectAll("circle")
@@ -871,7 +878,7 @@ var GC = {
         })
         .style("fill","#000")
         .on("click", function(d, i) { 
-          window.open(gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html'); 
+          window.open(gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (GC.min_year_dataset+(i % gx.timedata.length)).toString() + '.html'); 
         })
 
         gx.timesvgr0.selectAll("circle")
@@ -911,7 +918,7 @@ var GC = {
         })
         .style("fill","#000")
         .on("click", function(d, i) { 
-          window.open(gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html'); 
+          window.open(gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (GC.min_year_dataset+(i % gx.timedata.length)).toString() + '.html'); 
         })
 
         gx.timesvgrp.selectAll("circle")
@@ -964,7 +971,7 @@ var GC = {
         gx.timedatawsB = [];
         gx.xMarksws = []
         var cnt = 0;
-        for (var year = 1994; year <= 2004; year ++)
+        for (var year = GC.min_year_dataset; year <= GC.max_year_dataset; year ++)
         {
           var tmp = parseInt(dataA[year]);
           if (tmp == 0)
@@ -976,7 +983,7 @@ var GC = {
             gx.timedatawsB.push(0);
           else
             gx.timedatawsB.push(1.0/tmp);
-          if ((year-1994) % 2 ==0)
+          if ((year-GC.min_year_dataset) % 2 ==0)
           {
             gx.xMarksws.push(year);
             cnt += 1;
@@ -1012,7 +1019,7 @@ var GC = {
         })
         .style("fill","#000")
         .on("click", function(d, i) { 
-          window.open(gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (1995+(i % gx.timedata.length)).toString() + '.html'); 
+          window.open(gx.urladd[Math.floor(i / gx.timedata.length).toString()] + (GC.min_year_dataset+(i % gx.timedata.length)).toString() + '.html'); 
         })
 
         gx.timesvgws.selectAll("circle")
@@ -1048,7 +1055,7 @@ var GC = {
 
         var grad = gx.treesvg.append("defs").append("linearGradient").attr("id", "grad")
                     .attr("x1", "0%").attr("x2", "100%").attr("y1", "0%").attr("y2", "0%");
-        grad.append("stop").attr("offset", "50%").style("stop-color", "purple");
+        grad.append("stop").attr("offset", "50%").style("stop-color", "red");
         grad.append("stop").attr("offset", "50%").style("stop-color", "blue");
         gx.nodeEnter.append("circle")
         .attr("r", function(d){
@@ -1064,7 +1071,7 @@ var GC = {
         })
         .style("fill", function(d){
           if (d.set == 1) return "blue";
-          if (d.set == 2) return "purple";
+          if (d.set == 2) return "orange";
           if (d.set == 4) return "url(#grad)";
           return "grey";
 
